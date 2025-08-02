@@ -51,7 +51,8 @@ def convex_hull(nodes):
     if not nodes:
         return []
     # no com a mais baixa coordenada y
-    start_node = min(nodes, key=lambda node: (node.y, node.x))
+    # start_node = min(nodes, key=lambda node: (node.y, node.x))
+    start_node = min(nodes[1:], key=lambda node: nodes[0].distance(node))
 
     # ordena com os angulos
     sorted_nodes = sorted(nodes, key=lambda node: (math.atan2(node.y - start_node.y, node.x - start_node.x), node.distance(start_node)))
@@ -190,11 +191,20 @@ def calculate_max_separation_at_arrivals(tours, depot):
 
     return max_separations
 
+def solution_minmax():
+    raise NotImplementedError
+
+def solution_onion():
+    raise NotImplementedError
+
+def solution_same_hull():
+    raise NotImplementedError
+
 
 def main():
     """funcao de entrada."""
-    num_nodes = 100
-    num_salesmen = 3
+    num_nodes = 200
+    num_salesmen = 5
 
     nodes = generate_random_nodes(num_nodes)
     depot = nodes[0]
@@ -224,9 +234,20 @@ def main():
         best_tour_idx = -1
         best_insertion_index = -1
 
+        partial_costs = []
+        for i,j in enumerate(salesmen_tours):
+            tour_order = [x.index for x in j]
+            partial_cost = calculate_partial_cost(j, nodes[0])
+            partial_costs.append(partial_cost)
+
+        best_tour_idx = partial_costs.index(min(partial_costs))
+
         # nó de menor custo a ser adicionado para todos os caixeiros
         for node_to_insert in unassigned_nodes:
+
             for tour_idx, tour in enumerate(salesmen_tours):
+                if tour_idx != best_tour_idx:
+                    continue
                 # tour vazio
                 if not tour:
                     cost = depot.distance(node_to_insert) * 2
@@ -234,7 +255,7 @@ def main():
                         best_insertion_cost = cost
                         best_node_to_insert = node_to_insert
                         best_tour_idx = tour_idx
-                        best_insertion_index = 0 # It will be the first node in this tour
+                        best_insertion_index = 0 # primeira inserção no tour
                     continue
 
                 # tour ja iniciado: acha aresta de menor valor
@@ -279,9 +300,6 @@ def main():
             critical_event = e
 
     print(f"distancia maxima: {critical_event}")
-
-
-
     plot_tours(salesmen_tours, nodes, f"mTSP solucao para {num_salesmen} caixeiros-viajantes")
 
 
