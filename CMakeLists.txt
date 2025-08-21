@@ -1,10 +1,18 @@
 
-add_library(chmtsp_lib src/chmtsp.cpp)
-add_library(chmtsp_util_lib src/chmtsp_util.cpp)
+add_library(Cht_lib src/Cht.cpp)
+add_library(Cht_util_lib src/chmtsp_util.cpp)
+add_library(MTSPBC_lib src/MTSPBC.cpp)
 
-target_include_directories(chmtsp_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_include_directories(chmtsp_util_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(Cht_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(Cht_util_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(MTSPBC_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_executable(test_chmtsp_lib src/test_main.cpp)
-
-target_link_libraries(test_chmtsp_lib PRIVATE chmtsp_lib chmtsp_util_lib)
+if(BUILD_TESTING)
+    add_executable(test_Cht_class src/test_Cht_class.cpp)
+    add_executable(test_MTSPBC_class src/test_MTSPBC_class.cpp)
+    target_link_libraries(test_Cht_class PRIVATE Cht_lib Cht_util_lib GTest::gtest_main)
+    target_link_libraries(test_MTSPBC_class PRIVATE MTSPBC_lib Cht_lib Cht_util_lib GTest::gtest_main)
+    include(GoogleTest)
+    gtest_discover_tests(test_Cht_class)
+    gtest_discover_tests(test_MTSPBC_class)
+endif()

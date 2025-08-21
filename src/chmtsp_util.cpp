@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <sstream>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 #include <string>
@@ -19,15 +20,15 @@
 
 
 std::vector<size_t> unassigned_nodes;       // vetor de nós não assinalados
-int n_nodes;                                // número de nós
-int k_vehicles;                             // número de veículos
-int r_radius;                               // raio de cobertura
+uint32_t n_nodes;                                // número de nós
+uint32_t k_vehicles;                             // número de veículos
+uint32_t r_radius;                               // raio de cobertura
 typedef struct Coord  {                     // strutura de coordenadas
     double pos_x;
     double pos_y;
 } Coord ;
 std::vector<Coord> coordinates;             // coordenadas dos nós
-std::vector<std::vector<int>> matriz_dist;  // matriz de adjacencias
+std::vector<std::vector<uint32_t>> matriz_dist;  // matriz de adjacencias
 typedef struct Nodes {
     size_t index;
     Coord pos;
@@ -42,7 +43,7 @@ std::vector<std::vector<std::vector<double>>> UB;  // upper bound time covering 
  * @param file_name String that contains the file path of the instance.
  * @return Returns 0 if the file was read and parameters retrieved.
  */
-int read_instance(std::string file_name) {
+uint32_t read_instance(std::string file_name) {
     // create fstream object from file name string
     std::ifstream input_instance(file_name);
     bool parameters_read {false};
@@ -64,8 +65,8 @@ int read_instance(std::string file_name) {
         if (!parameters_read) {
             ss >> k_vehicles >> n_nodes >> r_radius;
             n_nodes++;                  // adiciona garagem ao número de nós
-            matriz_dist.resize(n_nodes, std::vector<int>(n_nodes));     // aloca matriz de distancias
-            for (int i{}; i < n_nodes; i++) {
+            matriz_dist.resize(n_nodes, std::vector<uint32_t>(n_nodes));     // aloca matriz de distancias
+            for (uint32_t i{}; i < n_nodes; i++) {
                 unassigned_nodes.push_back(i);                          // coloca todos os nós como não assinalados
             }
             parameters_read = true;
@@ -85,15 +86,14 @@ int read_instance(std::string file_name) {
  * @param input_file String that contains the file path of the instance.
  * @return Returns 0 if the file was read and parameters retrieved.
  */
-int read_inst_dist(std::string input_file) {
+std::vector<std::vector<uint32_t>> read_inst_dist(std::string input_file) {
 
     // create fstream file object from file name string
     std::ifstream input_instance(input_file);
 
     // checks if the file was open
     if (!input_instance.is_open()) {
-        std::cerr << "error: could not open file" << std::endl;
-        return 1;
+        throw std::runtime_error("error: cannot open file");
     }
 
     bool parameters_read {false};
@@ -111,14 +111,14 @@ int read_inst_dist(std::string input_file) {
         } else {
             size_t i{};
             size_t j{};
-            int dist{};
+            uint32_t dist{};
             ss >> i >> j >> dist;
             matriz_dist[i][j] = dist;   // le matriz de distancias
         }
 
     }
 
-    return 0;
+    return matriz_dist;
 }
 
 
@@ -129,7 +129,7 @@ int read_inst_dist(std::string input_file) {
  * @param input_file String that contains the file path of the instance.
  * @return Returns 0 if the file was read and parameters retrieved.
  */
-int read_cover(std::string cover_file){
+uint32_t read_cover(std::string cover_file){
     // open cover.dat file
     std::ifstream cover_f(cover_file);
     // checks if the file was open
@@ -142,10 +142,10 @@ int read_cover(std::string cover_file){
     // resize lower and upper bound variable
     LB.resize(n_nodes);
     UB.resize(n_nodes);
-    for (int i{}; i < n_nodes; i++) {
+    for (uint32_t i{}; i < n_nodes; i++) {
         LB[i].resize(n_nodes);
         UB[i].resize(n_nodes);
-        for (int j{}; j < n_nodes; j++) {
+        for (uint32_t j{}; j < n_nodes; j++) {
             LB[i][j].resize(n_nodes);
             UB[i][j].resize(n_nodes);
         }
@@ -207,14 +207,14 @@ int orientation(Coord a, Coord b, Coord c) {
  * @param b Second node.
  * @return The integer distance of a and b.
  */
-int distance(const Nodes& a, const Nodes& b) {
+uint32_t distance(const Nodes& a, const Nodes& b) {
     double dx = a.pos.pos_x - b.pos.pos_x;
     double dy = a.pos.pos_y - b.pos.pos_y;
     double result = std::sqrt(std::pow(dx, 2) + std::pow(dy, 2));
     return std::round(result);
 }
 
-int distance(const Coord& a, const Coord& b) {
+uint32_t distance(const Coord& a, const Coord& b) {
     double dx = a.pos_x - b.pos_x;
     double dy = a.pos_y - b.pos_y;
     double result = std::sqrt(std::pow(dx, 2) + std::pow(dy, 2));
@@ -226,7 +226,7 @@ int distance(const Coord& a, const Coord& b) {
  * @param hull_indices The indices of the route.
  * @return Returns 0 if the data was succesfully saved.
  */
-int save_data(const std::vector<std::vector<int>>& onion_hull) {
+uint32_t save_data(const std::vector<std::vector<uint32_t>>& onion_hull) {
     std::ofstream points_file("points.dat");
     for (const auto& coord : coordinates) {
         points_file << coord.pos_x << " " << coord.pos_y << "\n";
@@ -235,7 +235,7 @@ int save_data(const std::vector<std::vector<int>>& onion_hull) {
 
     std::ofstream hull_file("hull.dat");
     for (auto h : onion_hull) {
-        for (int idx : h) {
+        for (uint32_t idx : h) {
             hull_file << coordinates[idx].pos_x << " " << coordinates[idx].pos_y << "\n";
         }
         hull_file << coordinates[h[0]].pos_x << " " << coordinates[h[0]].pos_y << "\n";
@@ -247,10 +247,10 @@ int save_data(const std::vector<std::vector<int>>& onion_hull) {
     return 0;
 }
 
-int save_data(const std::vector<int>& h, const std::string& hull_file_path) {
+uint32_t save_data(const std::vector<uint32_t>& h, const std::string& hull_file_path) {
 
     std::ofstream hull_file(hull_file_path);
-    for (int idx : h) {
+    for (uint32_t idx : h) {
         hull_file << coordinates[idx].pos_x << " " << coordinates[idx].pos_y << "\n";
     }
     hull_file << coordinates[h[0]].pos_x << " " << coordinates[h[0]].pos_y << "\n";
@@ -265,7 +265,7 @@ int save_data(const std::vector<int>& h, const std::string& hull_file_path) {
  * @brief Find the convex hull using the Grahan Scan Algorithm.
  * @return Returns a vector that has the nodes index forming a hull route.
  */
-std::vector<int> find_initial_hull() {
+std::vector<uint32_t> find_initial_hull() {
     // Find the leftmost unassigned node
     size_t point_left_most_i = unassigned_nodes[0];
     for (size_t idx = 1; idx < unassigned_nodes.size(); idx++) {
@@ -315,7 +315,7 @@ std::vector<int> find_initial_hull() {
     }
 
     // Return the indices of the hull
-    std::vector<int> hull_indices;
+    std::vector<uint32_t> hull_indices;
     for (const auto& n : stack) {
         hull_indices.push_back(static_cast<int>(n.index));
     }
@@ -327,15 +327,15 @@ std::vector<int> find_initial_hull() {
  * @brief Find one hull for every vehicle using Granhan Scan Algorithm.
  * @return A vector with one route for every vehicle.
  */
-std::vector<std::vector<int>> find_onion_hull() {
+std::vector<std::vector<uint32_t>> find_onion_hull() {
 
     // declara vetor de rotas
-    std::vector<std::vector<int>> onion_hull;
+    std::vector<std::vector<uint32_t>> onion_hull;
 
     // iterativamente, encontra uma rota para cada veículo
-    for (int i{0}; i < k_vehicles; i++) {
-        std::vector<int> initial_hull { find_initial_hull() };
-        std::vector<int> clean_hull { remove_covered_nodes(initial_hull) };
+    for (uint32_t i{0}; i < k_vehicles; i++) {
+        std::vector<uint32_t> initial_hull { find_initial_hull() };
+        std::vector<uint32_t> clean_hull { remove_covered_nodes(initial_hull) };
         onion_hull.push_back(clean_hull);
     }
 
@@ -349,7 +349,7 @@ std::vector<std::vector<int>> find_onion_hull() {
  * @return The remaining hull after removing the spare nodes, or the same hull if
  * none were removed.
  */
-std::vector<int> remove_covered_nodes(std::vector<int> hull) {
+std::vector<uint32_t> remove_covered_nodes(std::vector<uint32_t> hull) {
     // three nodes to check cover, m=m, n=m+1, o=m+2
     // if a vehicle travelling from m to o covers n, remove if from hull
     size_t m{ 0 }, n{ 1 }, o{ 2 };
@@ -411,7 +411,7 @@ std::vector<int> remove_covered_nodes(std::vector<int> hull) {
  * @param hull The hull to be printed.
  * @return Nothing
  */
-void print_hull(std::vector<int> hull) {
+void print_hull(std::vector<uint32_t> hull) {
     for (const auto& i : hull) {
         std::cout << i << " ";
     }
@@ -424,10 +424,10 @@ void print_hull(std::vector<int> hull) {
  * @param hull A hull with assigned nodes
  * @return The number of removed nodes.
  */
-int unassign(const std::vector<int>& hull) {
+uint32_t unassign(const std::vector<uint32_t>& hull) {
     int n_removed {};
     for (auto i : hull) {
-        for (int j{}; j < unassigned_nodes.size(); j++) {
+        for (uint32_t j{}; j < unassigned_nodes.size(); j++) {
             if (i == unassigned_nodes[j]) {
                 unassigned_nodes.erase(unassigned_nodes.begin() + j);
                 n_removed++;
@@ -446,18 +446,18 @@ int unassign(const std::vector<int>& hull) {
  * @param onion_hull The vector of hulls.
  * @return The vector of routes, representing a solution.
  */
-std::vector<std::vector<int>> cheapest_insertion(std::vector<std::vector<int>> onion_hull) {
+std::vector<std::vector<uint32_t>> cheapest_insertion(std::vector<std::vector<uint32_t>> onion_hull) {
     while(unassigned_nodes.size() > 0) {
-        int k_index {};
-        int position {};
-        int new_cost { 999999 };
-        int unassigned_index {};
+        uint32_t k_index {};
+        uint32_t position {};
+        uint32_t new_cost { 999999 };
+        uint32_t unassigned_index {};
         for (auto un { 0 }; un < unassigned_nodes.size(); un++) {
             for (auto k{ 0 }; k < onion_hull.size(); k++) {
                 for (auto i{ 0 }; i < onion_hull[k].size(); i++) {
-                    std::vector<int> insertion_hull { onion_hull[k] };
+                    std::vector<uint32_t> insertion_hull { onion_hull[k] };
                     insertion_hull.insert(insertion_hull.begin() + i, unassigned_nodes[un]);
-                    int temp_cost { hull_objective(insertion_hull) };
+                    uint32_t temp_cost { hull_objective(insertion_hull) };
                     if (temp_cost < new_cost) {
                         position = i;
                         k_index = k;
@@ -482,8 +482,8 @@ std::vector<std::vector<int>> cheapest_insertion(std::vector<std::vector<int>> o
  * @param onion_hull The vector of incomplete routes, one for every vehicle.
  * @return The vector of routes representing a complete solution.
  */
-std::vector<std::vector<int>> assign_depot(std::vector<std::vector<int>> onion_hull) {
-    int vehicle_at_depot { -1 };
+std::vector<std::vector<uint32_t>> assign_depot(std::vector<std::vector<uint32_t>> onion_hull) {
+    uint32_t vehicle_at_depot { 0 };
     if (!unassigned_nodes.empty()) {
         if(unassigned_nodes[0] != 0) {
             for (auto h{0}; h < k_vehicles; h++) {
@@ -495,16 +495,16 @@ std::vector<std::vector<int>> assign_depot(std::vector<std::vector<int>> onion_h
             }
         }
     }
-    for (int k{}; k < onion_hull.size(); k++) {
+    for (uint32_t k{}; k < onion_hull.size(); k++) {
         if (k == vehicle_at_depot) {
             continue;
         }
-        int new_cost{ 999999 };
-        int position{};
-        for (int i{ 0 }; i < onion_hull[k].size(); i++) {
-            std::vector<int> insertion_hull { onion_hull[k] };
+        uint32_t new_cost{ 999999 };
+        uint32_t position{};
+        for (uint32_t i{ 0 }; i < onion_hull[k].size(); i++) {
+            std::vector<uint32_t> insertion_hull { onion_hull[k] };
             insertion_hull.insert(insertion_hull.begin() + i, 0);
-            int temp_cost { hull_objective(insertion_hull) };
+            uint32_t temp_cost { hull_objective(insertion_hull) };
             if (temp_cost < new_cost) {
                 position = i;
                 new_cost = temp_cost;
@@ -524,21 +524,21 @@ std::vector<std::vector<int>> assign_depot(std::vector<std::vector<int>> onion_h
  * @param hull The vector of the indexes representing a route.
  * @return The objective of the route.
  */
-int hull_objective(const std::vector<int>& hull) {
-    int objective{};
-    for (int i{ 1 }; i < hull.size(); i++) {
-        int j { i - 1 };
+uint32_t hull_objective(const std::vector<uint32_t>& hull) {
+    uint32_t objective{};
+    for (uint32_t i{ 1 }; i < hull.size(); i++) {
+        uint32_t j { i - 1 };
         objective += matriz_dist[hull[j]][hull[i]];
     }
     objective += matriz_dist[hull.back()][hull.front()];
     return objective;
 }
 
-int get_vehicle_node_index(const std::vector<int>& route, int time) {
+uint32_t get_vehicle_node_index(const std::vector<uint32_t>& route, uint32_t time) {
     bool started_route{ false };
-    int last_node { 0 };
-    int current_node { 0 };
-    int current_time { 0 };
+    uint32_t last_node { 0 };
+    uint32_t current_node { 0 };
+    uint32_t current_time { 0 };
     for (auto i { 0 }; i < route.size(); i++) {
         if (!started_route) {
             started_route = true;
@@ -553,13 +553,13 @@ int get_vehicle_node_index(const std::vector<int>& route, int time) {
 }
 
 
-Coord get_real_position(int time, std::vector<int> route) {
+Coord get_real_position(uint32_t time, std::vector<uint32_t> route) {
     bool started_route { false };
     double current_time {};
-    int last_node { 0 };
-    int current_node { 0 };
-    int time_next_node {};
-    int time_last_node {};
+    uint32_t last_node { 0 };
+    uint32_t current_node { 0 };
+    uint32_t time_next_node {};
+    uint32_t time_last_node {};
     for (auto i : route) {
         if (!started_route) {
             started_route = true;
@@ -574,7 +574,7 @@ Coord get_real_position(int time, std::vector<int> route) {
         }
     }
     if (time_next_node < time) return coordinates[0];
-    int diff_time = time - time_last_node;
+    uint32_t diff_time = time - time_last_node;
     double curr_x { coordinates[current_node].pos_x };
     double curr_y { coordinates[current_node].pos_y };
     double last_x { coordinates[last_node].pos_x };
@@ -591,12 +591,12 @@ Coord get_real_position(int time, std::vector<int> route) {
 }
 
 
-bool check_feasibility(const std::vector<std::vector<int>>& onion_hull) {
-    std::vector<int> travel_time(k_vehicles);           // travel time for every vehicle
-    std::vector<std::pair<int, int>> events;            // events: `k` vehicle reaches a node at `t` time
+bool check_feasibility(const std::vector<std::vector<uint32_t>>& onion_hull) {
+    std::vector<uint32_t> travel_time(k_vehicles);           // travel time for every vehicle
+    std::vector<std::pair<uint32_t, uint32_t>> events;            // events: `k` vehicle reaches a node at `t` time
     bool is_feasible { false };
     for (auto h { 0 }; h < onion_hull.size(); h++) {
-        int last_node { 0 };
+        uint32_t last_node { 0 };
         bool started_tour { false };
         for (auto i { 0 }; i < onion_hull[h].size(); i++) {
             if (last_node == 0 && !started_tour) {
@@ -604,7 +604,7 @@ bool check_feasibility(const std::vector<std::vector<int>>& onion_hull) {
                 continue;
             }
             else {
-                int current_node = onion_hull[h][i];
+                uint32_t current_node = onion_hull[h][i];
                 travel_time[h] += matriz_dist[current_node][last_node];
                 last_node = current_node;
                 events.push_back(std::make_pair(travel_time[h], h));
@@ -613,14 +613,14 @@ bool check_feasibility(const std::vector<std::vector<int>>& onion_hull) {
     }
     std::sort(events.begin(), events.end());
     for (auto e : events) {
-        int e_time { e.first };
-        int e_vehicle { e.second };
+        uint32_t e_time { e.first };
+        uint32_t e_vehicle { e.second };
         for (auto i { 0 }; i < k_vehicles; i++) {
             if (e.second == i) continue;
             Coord real_i_pos { get_real_position(e_time, onion_hull[i]) };
-            int event_node_index { get_vehicle_node_index(onion_hull[e_vehicle], e_time) };
+            uint32_t event_node_index { get_vehicle_node_index(onion_hull[e_vehicle], e_time) };
             Coord e_coord { coordinates[onion_hull[e_vehicle][event_node_index]] };
-            int distance_cov { distance(e_coord, real_i_pos) };
+            uint32_t distance_cov { distance(e_coord, real_i_pos) };
             if (distance_cov > r_radius) return false;
         }
     }
@@ -628,9 +628,9 @@ bool check_feasibility(const std::vector<std::vector<int>>& onion_hull) {
 }
 
 
-std::vector<std::vector<int>> fix_initial_route(std::vector<std::vector<int>> onion_hull) {
+std::vector<std::vector<uint32_t>> fix_initial_route(std::vector<std::vector<uint32_t>> onion_hull) {
     for (auto i{ 0 }; i < onion_hull.size(); i++) {
-        std::vector<int> fixed_route;
+        std::vector<uint32_t> fixed_route;
         auto it = std::find(onion_hull[i].begin(), onion_hull[i].end(), 0);
         std::rotate(onion_hull[i].begin(), it, onion_hull[i].end());
         onion_hull[i].push_back(0);
