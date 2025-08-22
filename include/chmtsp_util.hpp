@@ -1,13 +1,13 @@
 #pragma once
 
 
-#include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <string>
 #include "MTSPBC_util.hpp"
 
 
-uint32_t read_instance(std::string file_name, std::vector<Coord>& coord);           // read the instance from BCLIB
+uint32_t read_instance(std::string file_name, std::vector<Coord>& coord, uint32_t& k_vehicles_p, uint32_t& n_nodes_p, uint32_t& r_radius_p);           // read the instance from BCLIB
 std::vector<std::vector<uint32_t>> read_inst_dist(std::string input_file);         // read distance matrix from pre processing
 uint32_t read_cover(std::string cover_file);        // read the cover pre processing data
 std::vector<uint32_t> find_initial_hull();               // find the hull for one vehicle

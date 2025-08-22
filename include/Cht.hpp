@@ -24,12 +24,13 @@ class Cht {
         uint32_t push_front(const uint32_t node, const std::vector<std::vector<uint32_t>>& dist_matrix);
         uint32_t pop_back(const std::vector<std::vector<uint32_t>>& dist_matrix);
         uint32_t pop_front(const std::vector<std::vector<uint32_t>>& dist_matrix);
-        uint32_t get_obj() const;
-        std::vector<uint32_t> get_tour() const;
-        size_t get_pos_for_node(const uint32_t node);
-        uint32_t get_node_at_pos(const size_t pos);
-        size_t n_nodes() const;
-        std::vector<uint32_t> get_events() const;
+        [[nodiscard]] uint32_t get_obj() const noexcept;
+        [[nodiscard]]std::vector<uint32_t> get_tour() const noexcept;
+        [[nodiscard]] size_t get_pos_for_node(const uint32_t node) const;
+        [[nodiscard]] uint32_t get_node_at_pos(const size_t pos) const;
+        [[nodiscard]] size_t n_nodes() const noexcept;
+        [[nodiscard]] std::vector<uint32_t> get_events() const noexcept;
+        [[nodiscard]] bool get_complete() const noexcept;
         bool check_complete_tour_();
-        bool get_complete() const;
+
 };

@@ -2,11 +2,12 @@
 #include "MTSPBC.hpp"
 #include "Cht.hpp"
 #include "MTSPBC_util.hpp"
-#include "chmtsp_util.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <sys/types.h>
 #include <vector>
+#include <algorithm>
 
 
 uint32_t add_convex_hull(MTSPBC& solution, const uint32_t vehicle, std::vector<size_t>& un_nodes, const std::vector<Coord>& coord) {              // find the hull for one vehicle

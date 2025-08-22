@@ -1,6 +1,9 @@
 #include "MTSPBC.hpp"
 #include <cstdint>
 #include <stdexcept>
+#include <algorithm>
+#include <utility>
+#include <vector>
 
 
 // constructor
@@ -42,44 +45,39 @@ uint32_t MTSPBC::remove_vehicle(const uint32_t vehicle_index) {
 }
 
 
-uint32_t MTSPBC::get_total_obj() {
-    return total_obj_;
+uint32_t MTSPBC::set_radius(const uint32_t r_radius) {
+    r_radius_ = r_radius;
+    return r_radius;
 }
 
 
-std::vector<std::pair<uint32_t, uint32_t>> MTSPBC::get_events() const {
-    return events_;
+uint32_t MTSPBC::collect_events_() {
+    events_.clear();
+    for (uint32_t t { 0 }; t < tours_.size(); t++) {
+        std::vector<uint32_t> tour_e { tours_.at(t).get_events() };
+        std::vector<std::pair<uint32_t, uint32_t>> tour_e_pair {  };
+        for (uint32_t i { 0 }; i < tour_e.size(); i++) {
+            tour_e_pair.push_back(std::make_pair(tour_e.at(i), t));
+        }
+        events_.insert(events_.begin(), tour_e_pair.begin(), tour_e_pair.begin() + tour_e_pair.size());
+    }
+    std::sort(events_.begin(), events_.end());
+    return events_.size();
 }
 
 
-bool MTSPBC::get_feasibility() {
-    return feasible_;
-}
+uint32_t collect_events_(const uint32_t& vehicle, const uint32_t& node_index) { return 0; }
 
 
-uint32_t MTSPBC::get_max_distance() {
-    return max_distance_value_;
-}
-
-
-std::vector<uint32_t> MTSPBC::get_distances() {
-    return max_distance_events_;
-}
-
-
-uint32_t MTSPBC::get_n_nodes() {
-    return n_nodes_;
-}
-
-
-uint32_t MTSPBC::get_k_vehicles() {
-    return k_vehicles_;
-}
-
-
-uint32_t MTSPBC::get_r_radius() {
-    return r_radius_;
-}
+//getters
+[[nodiscard]] uint32_t MTSPBC::get_total_obj() const noexcept { return total_obj_; }
+[[nodiscard]] bool MTSPBC::get_feasibility() const noexcept { return feasible_; }
+[[nodiscard]] uint32_t MTSPBC::get_max_distance() const noexcept { return max_distance_value_; }
+[[nodiscard]] std::vector<std::pair<uint32_t, uint32_t>> MTSPBC::get_events() const noexcept { return events_;}
+[[nodiscard]] std::vector<uint32_t> MTSPBC::get_distances() const noexcept { return max_distance_events_; }
+[[nodiscard]] uint32_t MTSPBC::get_n_nodes() const noexcept { return n_nodes_; }
+[[nodiscard]] uint32_t MTSPBC::get_k_vehicles() const noexcept { return k_vehicles_; }
+[[nodiscard]] uint32_t MTSPBC::get_r_radius() const noexcept { return r_radius_; }
 
 
 // Cht wrapper methods
@@ -88,6 +86,7 @@ uint32_t MTSPBC::insert_node(const uint32_t vehicle, const uint32_t node, const 
         throw std::logic_error("error: vehicle do not exist");
     }
     total_obj_ += tours_.at(vehicle).insert_node(node, pos, dist_matrix_);
+    collect_events_();
     return total_obj_;
 }
 
@@ -99,6 +98,7 @@ uint32_t MTSPBC::remove_node(const uint32_t vehicle, const size_t pos) {
     uint32_t old_obj { tours_.at(vehicle).get_obj() };
     uint32_t new_obj { tours_.at(vehicle).remove_node(pos, dist_matrix_) };
     total_obj_ -= old_obj - new_obj;
+    collect_events_();
     return total_obj_;
 }
 
@@ -110,6 +110,7 @@ uint32_t MTSPBC::push_back(const uint32_t vehicle, const uint32_t node) {
     uint32_t old_obj { tours_.at(vehicle).get_obj() };
     uint32_t new_obj { tours_.at(vehicle).push_back(node, dist_matrix_) };
     total_obj_ += new_obj - old_obj;
+    collect_events_();
     return total_obj_;
 }
 
@@ -121,6 +122,7 @@ uint32_t MTSPBC::push_front(const uint32_t vehicle, const uint32_t node) {
     uint32_t old_obj { tours_.at(vehicle).get_obj() };
     uint32_t new_obj { tours_.at(vehicle).push_front(node, dist_matrix_) };
     total_obj_ += new_obj - old_obj;
+    collect_events_();
     return total_obj_;
 }
 
@@ -132,6 +134,7 @@ uint32_t MTSPBC::pop_back(const uint32_t vehicle) {
     uint32_t old_obj { tours_.at(vehicle).get_obj() };
     uint32_t new_obj { tours_.at(vehicle).pop_back(dist_matrix_) };
     total_obj_ -= old_obj - new_obj;
+    collect_events_();
     return total_obj_;
 }
 
@@ -143,11 +146,12 @@ uint32_t MTSPBC::pop_front(const uint32_t vehicle) {
     uint32_t old_obj { tours_.at(vehicle).get_obj() };
     uint32_t new_obj { tours_.at(vehicle).pop_front(dist_matrix_) };
     total_obj_ -= old_obj - new_obj;
+    collect_events_();
     return total_obj_;
 }
 
 
-uint32_t MTSPBC::get_obj_vehicle(const uint32_t vehicle) const {
+[[nodiscard]] uint32_t MTSPBC::get_obj_vehicle(const uint32_t vehicle) const {
     if (k_vehicles_ - 1 < vehicle) {
         throw std::logic_error("error: vehicle do not exist");
     }
@@ -155,7 +159,7 @@ uint32_t MTSPBC::get_obj_vehicle(const uint32_t vehicle) const {
 }
 
 
-std::vector<uint32_t> MTSPBC::get_tour(const uint32_t vehicle) const {
+[[nodiscard]] std::vector<uint32_t> MTSPBC::get_tour(const uint32_t vehicle) const {
     if (k_vehicles_ - 1 < vehicle) {
         throw std::logic_error("error: vehicle do not exist");
     }
@@ -163,7 +167,7 @@ std::vector<uint32_t> MTSPBC::get_tour(const uint32_t vehicle) const {
 }
 
 
-size_t MTSPBC::get_pos_for_node(const uint32_t vehicle, const uint32_t node) {
+[[nodiscard]] size_t MTSPBC::get_pos_for_node(const uint32_t vehicle, const uint32_t node) const {
     if (k_vehicles_ - 1 < vehicle) {
         throw std::logic_error("error: vehicle do not exist");
     }
@@ -171,7 +175,7 @@ size_t MTSPBC::get_pos_for_node(const uint32_t vehicle, const uint32_t node) {
 }
 
 
-uint32_t MTSPBC::get_node_at_pos(const uint32_t vehicle, const size_t pos) {
+[[nodiscard]] uint32_t MTSPBC::get_node_at_pos(const uint32_t vehicle, const size_t pos) const {
     if (k_vehicles_ - 1 < vehicle) {
         throw std::logic_error("error: vehicle do not exist");
     }
@@ -179,7 +183,7 @@ uint32_t MTSPBC::get_node_at_pos(const uint32_t vehicle, const size_t pos) {
 }
 
 
-bool MTSPBC::get_complete_tour(const uint32_t vehicle) const {
+[[nodiscard]] bool MTSPBC::get_complete_tour(const uint32_t vehicle) const {
     if (k_vehicles_ - 1 < vehicle) {
         throw std::logic_error("error: vehicle do not exist");
     }

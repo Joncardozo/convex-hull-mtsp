@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <sstream>
 #include <stdexcept>
+#include <sys/types.h>
 #include <utility>
 #include <vector>
 #include <string>
@@ -37,7 +38,7 @@ std::vector<std::vector<std::vector<double>>> UB;  // upper bound time covering 
  * @param file_name String that contains the file path of the instance.
  * @return Returns 0 if the file was read and parameters retrieved.
  */
-uint32_t read_instance(std::string file_name, std::vector<Coord>& coord) {
+uint32_t read_instance(std::string file_name, std::vector<Coord>& coord, uint32_t& k_vehicles_p, uint32_t& n_nodes_p, uint32_t& r_radius_p) {
     // create fstream object from file name string
     std::ifstream input_instance(file_name);
     bool parameters_read {false};
@@ -57,6 +58,9 @@ uint32_t read_instance(std::string file_name, std::vector<Coord>& coord) {
 
         if (!parameters_read) {
             ss >> k_vehicles >> n_nodes >> r_radius;
+            k_vehicles_p = k_vehicles;
+            n_nodes_p = n_nodes;
+            r_radius_p = r_radius;
             n_nodes++;                  // adiciona garagem ao número de nós
             matriz_dist.resize(n_nodes, std::vector<uint32_t>(n_nodes));     // aloca matriz de distancias
             for (uint32_t i{}; i < n_nodes; i++) {

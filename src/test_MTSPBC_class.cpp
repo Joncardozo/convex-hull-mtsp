@@ -8,22 +8,38 @@
 #include <vector>
 
 
-std::vector<std::vector<uint32_t>> read_matrix;
-std::vector<size_t> un_nodes;
-std::vector<Coord> coord;
-
-
 class MTSPBCTest : public ::testing::Test {
     protected:
+
+    static std::vector<std::vector<uint32_t>> read_matrix;
+    static std::vector<size_t> un_nodes;
+    static std::vector<Coord> coord;
+    static uint32_t k_vehicles;
+    static uint32_t n_nodes;
+    static uint32_t r_radius;
+
     static void SetUpTestSuite() {
-        std::string dist_file_path {"/Users/jonathan/code/mTSPBC/BackCovered/bin/inst.dat"};
-        std::string cover_file_path {"/Users/jonathan/code/mTSPBC/BackCovered/bin/cover.dat"};
-        std::string inst_file_path { "/Users/jonathan/code/mTSPBC/BackCovered/instances/BC/R1_5v_200n.bc" };
-        read_instance(inst_file_path, coord);
+        std::string dist_file_path {"../experiments/inst.dat"};
+        std::string cover_file_path {"../experiments/cover.dat"};
+        std::string inst_file_path { "../experiments/BC/R1_5v_200n.bc" };
+        read_instance(inst_file_path, coord, k_vehicles, n_nodes, r_radius);
         read_matrix = read_inst_dist(dist_file_path);
         read_cover(cover_file_path);
     }
+
+    void SetUp() override {
+        un_nodes.clear();
+    }
+
 };
+
+
+std::vector<std::vector<uint32_t>> MTSPBCTest::read_matrix;
+std::vector<size_t> MTSPBCTest::un_nodes;
+std::vector<Coord> MTSPBCTest::coord;
+uint32_t MTSPBCTest::k_vehicles;
+uint32_t MTSPBCTest::n_nodes;
+uint32_t MTSPBCTest::r_radius;
 
 
 TEST_F(MTSPBCTest, CreateOneRoute) {
@@ -56,5 +72,45 @@ TEST_F(MTSPBCTest, FindInitialHull) {
     // add_convex_hull(solution, 1, un_nodes, coord);
     find_onion_hull(solution, un_nodes, coord);
     int x { 0 };
-    ASSERT_GE(solution.get_total_obj(), 1);
+    ASSERT_GE(solution.get_obj_vehicle(1), 1);
+    ASSERT_GE(solution.get_obj_vehicle(0), 1);
+}
+
+
+TEST_F(MTSPBCTest, ReadParams) {
+    MTSPBC solution;
+    for (uint32_t i { 0 }; i < coord.size(); i++) {
+        un_nodes.push_back(i);
+    }
+    solution.create_distance_matrix(read_matrix);
+    for (uint32_t i { 0 }; i < k_vehicles; i++) {
+        solution.create_vehicle();
+    }
+    solution.set_radius(r_radius);
+    ASSERT_EQ(solution.get_k_vehicles(), 5);
+    ASSERT_EQ(solution.get_r_radius(), 10);
+}
+
+
+TEST_F(MTSPBCTest, CollectEvents) {
+    MTSPBC solution;
+    for (uint32_t i { 0 }; i < coord.size(); i++) {
+        un_nodes.push_back(i);
+    }
+    solution.create_distance_matrix(read_matrix);
+    for (uint32_t i { 0 }; i < k_vehicles; i++) {
+        solution.create_vehicle();
+    }
+    solution.set_radius(r_radius);
+    find_onion_hull(solution, un_nodes, coord);
+    uint32_t max_obj { 0 };
+    uint32_t n_events { 0 };
+    for (uint32_t i { 0 }; i < k_vehicles; i++) {
+        if (solution.get_obj_vehicle(i) > max_obj) {
+            max_obj = solution.get_obj_vehicle(i);
+        }
+        n_events += solution.get_tour(i).size();
+    }
+    ASSERT_EQ(solution.get_events().back().first, max_obj);
+    ASSERT_EQ(solution.get_events().size(), n_events);
 }

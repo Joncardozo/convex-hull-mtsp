@@ -1,0 +1,13 @@
+// Project-local debug tasks
+//
+// For more documentation on how to configure debug tasks,
+// see: https://zed.dev/docs/debugger
+[
+  {
+    "label": "test_MTSPBC",
+    "adapter": "CodeLLDB",
+    "request": "launch",
+    "program": "build/test_MTSPBC_class",
+    "cwd": "/home/jon/code/convex-hull-mtsp/build/"
+  }
+]

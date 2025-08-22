@@ -15,7 +15,6 @@
 #include "Cht.hpp"
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 #include <algorithm>
 #include <iterator>
 #include <limits>
@@ -107,9 +106,7 @@ uint32_t Cht::remove_node(const size_t pos, const std::vector<std::vector<uint32
  * objective value of the tour.
  * @return Returns the objective value of the tour.
  */
-uint32_t Cht::get_obj() const {
-    return obj_;
-}
+[[nodiscard]] uint32_t Cht::get_obj() const noexcept { return obj_; }
 
 
 /**
@@ -119,9 +116,7 @@ uint32_t Cht::get_obj() const {
  * travel order.
  * @return The vector representing the tour.
  */
-std::vector<uint32_t> Cht::get_tour() const {
-    return tour_;
-}
+[[nodiscard]]std::vector<uint32_t> Cht::get_tour() const noexcept { return tour_; }
 
 
 /**
@@ -132,7 +127,7 @@ std::vector<uint32_t> Cht::get_tour() const {
  * @param node The node to be found.
  * @return The index of the found node.
  */
-size_t Cht::get_pos_for_node(const uint32_t node) {
+[[nodiscard]] size_t Cht::get_pos_for_node(const uint32_t node) const {
     auto it { std::find(tour_.begin(), tour_.end(), node) };
     if (it == tour_.end()) {
         throw std::logic_error("node not found");
@@ -149,10 +144,9 @@ size_t Cht::get_pos_for_node(const uint32_t node) {
  * @param pos Node position in the tour.
  * @return The node.
  */
-uint32_t Cht::get_node_at_pos(const size_t pos) {
+[[nodiscard]] uint32_t Cht::get_node_at_pos(const size_t pos) const {
     if (tour_.size() - 1 < pos) {
         throw std::logic_error("empty tour_");
-        return std::numeric_limits<uint32_t>::max();
     }
     return tour_.at(pos);
 }
@@ -328,16 +322,10 @@ bool Cht::check_complete_tour_() {
 }
 
 
-size_t Cht::n_nodes() const {
-    return tour_.size();
-}
+[[nodiscard]] size_t Cht::n_nodes() const noexcept { return tour_.size(); }
 
 
-std::vector<uint32_t> Cht::get_events() const {
-    return events_;
-}
+[[nodiscard]] std::vector<uint32_t> Cht::get_events() const noexcept { return events_;}
 
 
-bool Cht::get_complete() const {
-    return complete_tour_;
-}
+[[nodiscard]] bool Cht::get_complete() const noexcept { return complete_tour_; }

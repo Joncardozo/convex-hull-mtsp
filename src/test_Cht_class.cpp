@@ -7,23 +7,34 @@
 #include <stdexcept>
 #include <vector>
 
-std::vector<std::vector<uint32_t>> read_matrix;
-std::vector<size_t> un_nodes;
-std::vector<Coord> coord;
 
 // setup inicial - ler instância
 class ChmtspTest : public ::testing::Test {
-protected:
+    protected:
+    static std::vector<std::vector<uint32_t>> read_matrix;
+    static std::vector<size_t> un_nodes;
+    static std::vector<Coord> coord;
+    static uint32_t k_vehicles;
+    static uint32_t n_nodes;
+    static uint32_t r_radius;
 
     static void SetUpTestSuite() {
-        std::string dist_file_path {"/Users/jonathan/code/mTSPBC/BackCovered/bin/inst.dat"};
-        std::string cover_file_path {"/Users/jonathan/code/mTSPBC/BackCovered/bin/cover.dat"};
-        std::string inst_file_path { "/Users/jonathan/code/mTSPBC/BackCovered/instances/BC/R1_5v_200n.bc" };
-        read_instance(inst_file_path, coord);
+        std::string dist_file_path {"../experiments/inst.dat"};
+        std::string cover_file_path {"../experiments/cover.dat"};
+        std::string inst_file_path { "../experiments/BC/R1_5v_200n.bc" };
+        read_instance(inst_file_path, coord, k_vehicles, n_nodes, r_radius);
         read_inst_dist(dist_file_path);
         read_cover(cover_file_path);
     }
 };
+
+
+std::vector<std::vector<uint32_t>> ChmtspTest::read_matrix;
+std::vector<size_t> ChmtspTest::un_nodes;
+std::vector<Coord> ChmtspTest::coord;
+uint32_t ChmtspTest::n_nodes;
+uint32_t ChmtspTest::r_radius;
+uint32_t ChmtspTest::k_vehicles;
 
 
 // testa se o valor da funcão objetivo é calculada corretamente
