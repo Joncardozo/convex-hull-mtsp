@@ -6,6 +6,9 @@
 // constructor
 MTSPBC::MTSPBC() {
     total_obj_ = 0;
+    n_nodes_ = 0;
+    k_vehicles_ = 0;
+    r_radius_ = 0;
     feasible_ = false;
 }
 

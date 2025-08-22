@@ -7,6 +7,10 @@
 #include <stdexcept>
 #include <vector>
 
+std::vector<std::vector<uint32_t>> read_matrix;
+std::vector<size_t> un_nodes;
+std::vector<Coord> coord;
+
 // setup inicial - ler instância
 class ChmtspTest : public ::testing::Test {
 protected:
@@ -15,7 +19,7 @@ protected:
         std::string dist_file_path {"/Users/jonathan/code/mTSPBC/BackCovered/bin/inst.dat"};
         std::string cover_file_path {"/Users/jonathan/code/mTSPBC/BackCovered/bin/cover.dat"};
         std::string inst_file_path { "/Users/jonathan/code/mTSPBC/BackCovered/instances/BC/R1_5v_200n.bc" };
-        read_instance(inst_file_path);
+        read_instance(inst_file_path, coord);
         read_inst_dist(dist_file_path);
         read_cover(cover_file_path);
     }

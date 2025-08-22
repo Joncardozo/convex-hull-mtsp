@@ -1,14 +1,21 @@
 #include "MTSPBC_chh.hpp"
+#include "MTSPBC.hpp"
+#include "Cht.hpp"
+#include "MTSPBC_util.hpp"
+#include "chmtsp_util.hpp"
+#include <cstddef>
 #include <cstdint>
+#include <sys/types.h>
 #include <vector>
 
 
-std::vector<uint32_t> find_initial_hull(const std::vector<uint32_t>& un_nodes, ) {              // find the hull for one vehicle
+uint32_t add_convex_hull(MTSPBC& solution, const uint32_t vehicle, std::vector<size_t>& un_nodes, const std::vector<Coord>& coord) {              // find the hull for one vehicle
+    Cht tour;
     // Find the leftmost unassigned node
     size_t point_left_most_i = un_nodes[0];
     for (size_t idx = 1; idx < un_nodes.size(); idx++) {
-        Coord left_most_coord = coordinates[point_left_most_i];
-        Coord current_point = coordinates[un_nodes[idx]];
+        Coord left_most_coord = coord[point_left_most_i];
+        Coord current_point = coord[un_nodes[idx]];
         if (current_point.pos_x < left_most_coord.pos_x ||
             (current_point.pos_x == left_most_coord.pos_x &&
              current_point.pos_y < left_most_coord.pos_y)) {
@@ -20,13 +27,13 @@ std::vector<uint32_t> find_initial_hull(const std::vector<uint32_t>& un_nodes, )
     std::vector<Nodes> nodes;
     Nodes point_left_most;
     point_left_most.index = point_left_most_i;
-    point_left_most.pos = coordinates[point_left_most_i];
+    point_left_most.pos = coord[point_left_most_i];
     for (size_t i = 0; i < un_nodes.size(); i++) {
         size_t idx = un_nodes[i];
         if (idx != point_left_most_i) {
             Nodes n;
             n.index = idx;
-            n.pos = coordinates[idx];
+            n.pos = coord[idx];
             nodes.push_back(n);
         }
     }
@@ -52,14 +59,28 @@ std::vector<uint32_t> find_initial_hull(const std::vector<uint32_t>& un_nodes, )
         stack.push_back(nodes[i]);
     }
 
-    // Return the indices of the hull
+    // Add hull to the solution
     std::vector<uint32_t> hull_indices;
     for (const auto& n : stack) {
-        hull_indices.push_back(static_cast<int>(n.index));
+        solution.push_back(vehicle, static_cast<uint32_t>(n.index));
     }
-    return hull_indices;
+    return 0;
 }
-std::vector<std::vector<uint32_t>> find_onion_hull();    // find the hull for every vehicle
-std::vector<uint32_t> find_route();                      // find the route for one vehicle
-std::vector<std::vector<uint32_t>> find_solution();      // find heuristic solution
-std::vector<uint32_t> remove_covered_nodes(std::vector<uint32_t> hull);   // remove node from convex hull if the remaining hull covers it
+
+
+uint32_t find_onion_hull(MTSPBC& solution, std::vector<size_t>& un_nodes, const std::vector<Coord>& coord) {
+
+    uint32_t k_vehicles { solution.get_k_vehicles() };
+
+    // iterativamente, encontra uma rota para cada veículo
+    for (uint32_t i{ 0 }; i < k_vehicles; i++) {
+        add_convex_hull(solution, i, un_nodes, coord);
+        unassign(solution.get_tour(i), un_nodes);
+    }
+    return 0;
+}
+
+// std::vector<std::vector<uint32_t>> find_onion_hull();    // find the hull for every vehicle
+// std::vector<uint32_t> find_route();                      // find the route for one vehicle
+// std::vector<std::vector<uint32_t>> find_solution();      // find heuristic solution
+// std::vector<uint32_t> remove_covered_nodes(std::vector<uint32_t> hull);   // remove node from convex hull if the remaining hull covers it

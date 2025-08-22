@@ -7,8 +7,10 @@
  */
 
 #include "chmtsp_util.hpp"
+#include "MTSPBC_util.hpp"
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -23,16 +25,8 @@ std::vector<size_t> unassigned_nodes;       // vetor de nós não assinalados
 uint32_t n_nodes;                                // número de nós
 uint32_t k_vehicles;                             // número de veículos
 uint32_t r_radius;                               // raio de cobertura
-typedef struct Coord  {                     // strutura de coordenadas
-    double pos_x;
-    double pos_y;
-} Coord ;
 std::vector<Coord> coordinates;             // coordenadas dos nós
 std::vector<std::vector<uint32_t>> matriz_dist;  // matriz de adjacencias
-typedef struct Nodes {
-    size_t index;
-    Coord pos;
-} Nodes;                                    // nodes structure
 std::vector<std::vector<std::vector<double>>> LB;  // lower bound time covering node
 std::vector<std::vector<std::vector<double>>> UB;  // upper bound time covering node
 
@@ -43,15 +37,14 @@ std::vector<std::vector<std::vector<double>>> UB;  // upper bound time covering 
  * @param file_name String that contains the file path of the instance.
  * @return Returns 0 if the file was read and parameters retrieved.
  */
-uint32_t read_instance(std::string file_name) {
+uint32_t read_instance(std::string file_name, std::vector<Coord>& coord) {
     // create fstream object from file name string
     std::ifstream input_instance(file_name);
     bool parameters_read {false};
 
     // checks if it was open
     if(!input_instance.is_open()) {
-        std::cerr << "error: could not open file" << std::endl;
-        return 1;
+        throw std::runtime_error("error: could not open file");
     }
 
     std::string line;                   // string para ler as linhas
@@ -73,11 +66,11 @@ uint32_t read_instance(std::string file_name) {
         } else {
             Coord new_coord;
             ss >> new_coord.pos_x >> new_coord.pos_y;
-            coordinates.push_back(new_coord);
+            coord.push_back(new_coord);
         }
     }
     input_instance.close();
-    return 0;
+    return unassigned_nodes.size();
 }
 
 
@@ -190,15 +183,15 @@ bool covers_node(size_t i, size_t j, size_t k) {
  * @param c Coordinate of the third node.
  * @return Negative value if clockwise and positive value if counterclockwise. Zero if collinear.
  */
-int orientation(Coord a, Coord b, Coord c) {
-    long long area = (b.pos_x - a.pos_x)*(c.pos_y - a.pos_y) - (c.pos_x - a.pos_x)*(b.pos_y - a.pos_y);
-    if (area < 0) {
-        return -1; // cw
-    } else if (area > 0) {
-        return 1; // ccw
-    }
-    return 0;
-}
+// int orientation(Coord a, Coord b, Coord c) {
+//     long long area = (b.pos_x - a.pos_x)*(c.pos_y - a.pos_y) - (c.pos_x - a.pos_x)*(b.pos_y - a.pos_y);
+//     if (area < 0) {
+//         return -1; // cw
+//     } else if (area > 0) {
+//         return 1; // ccw
+//     }
+//     return 0;
+// }
 
 
 /**
@@ -207,19 +200,19 @@ int orientation(Coord a, Coord b, Coord c) {
  * @param b Second node.
  * @return The integer distance of a and b.
  */
-uint32_t distance(const Nodes& a, const Nodes& b) {
-    double dx = a.pos.pos_x - b.pos.pos_x;
-    double dy = a.pos.pos_y - b.pos.pos_y;
-    double result = std::sqrt(std::pow(dx, 2) + std::pow(dy, 2));
-    return std::round(result);
-}
+// uint32_t distance(const Nodes& a, const Nodes& b) {
+//     double dx = a.pos.pos_x - b.pos.pos_x;
+//     double dy = a.pos.pos_y - b.pos.pos_y;
+//     double result = std::sqrt(std::pow(dx, 2) + std::pow(dy, 2));
+//     return std::round(result);
+// }
 
-uint32_t distance(const Coord& a, const Coord& b) {
-    double dx = a.pos_x - b.pos_x;
-    double dy = a.pos_y - b.pos_y;
-    double result = std::sqrt(std::pow(dx, 2) + std::pow(dy, 2));
-    return std::round(result);
-}
+// uint32_t distance(const Coord& a, const Coord& b) {
+//     double dx = a.pos_x - b.pos_x;
+//     double dy = a.pos_y - b.pos_y;
+//     double result = std::sqrt(std::pow(dx, 2) + std::pow(dy, 2));
+//     return std::round(result);
+// }
 
 /**
  * @brief Saves data files for plotting.

@@ -1,9 +1,15 @@
 #pragma once
 
+
+#include "MTSPBC.hpp"
+#include "MTSPBC_util.hpp"
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
-std::vector<uint32_t> find_initial_hull();               // find the hull for one vehicle
-std::vector<std::vector<uint32_t>> find_onion_hull();    // find the hull for every vehicle
-std::vector<uint32_t> find_route();                      // find the route for one vehicle
-std::vector<std::vector<uint32_t>> find_solution();      // find heuristic solution
-std::vector<uint32_t> remove_covered_nodes(std::vector<uint32_t> hull);   // remove node from convex hull if the remaining hull covers it
+
+uint32_t add_convex_hull(MTSPBC& solution, const uint32_t vehicle, std::vector<size_t>& un_nodes, const std::vector<Coord>& coord);
+uint32_t find_onion_hull(MTSPBC& solution, std::vector<size_t>& un_nodes, const std::vector<Coord>& coord);
+uint32_t cheapest_insertion_solution(MTSPBC& solution, std::vector<size_t>& un_nodes, const std::vector<Coord>& coord);
+uint32_t remove_covered_nodes(MTSPBC& solution, std::vector<size_t>& un_nodes);
+uint32_t assign_depot(MTSPBC& solution);
