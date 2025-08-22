@@ -66,7 +66,10 @@ uint32_t MTSPBC::collect_events_() {
 }
 
 
-uint32_t collect_events_(const uint32_t& vehicle, const uint32_t& node_index) { return 0; }
+uint32_t collect_events_(const uint32_t& vehicle, const uint32_t& node_index) {
+
+    return 0;
+}
 
 
 //getters
