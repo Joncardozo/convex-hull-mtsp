@@ -1,7 +1,9 @@
 #include "MTSPBC_util.hpp"
+#include "MTSPBC.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
+#include <utility>
 #include <vector>
 
 
@@ -28,6 +30,23 @@ uint32_t distance(const Coord& a, const Coord& b) {
     double dx = a.pos_x - b.pos_x;
     double dy = a.pos_y - b.pos_y;
     double result = std::sqrt(std::pow(dx, 2) + std::pow(dy, 2));
+    return std::round(result);
+}
+
+
+uint32_t distance(const MTSPBC& solution, const uint32_t& event_index, const uint32_t& moving_vehicle) {
+    auto event { solution.get_event(event_index) };
+    auto e_time { event.first };
+    auto e_vehicle { event.second };
+    if (moving_vehicle == e_vehicle) {
+        return 0;
+    }
+    uint32_t mv_time { 0 };
+    auto mv_events { solution.get_vehicle_events(moving_vehicle) };
+    for (uint32_t t { 0 }; t < mv_events.size(); t++) {
+
+    }
+
     return std::round(result);
 }
 

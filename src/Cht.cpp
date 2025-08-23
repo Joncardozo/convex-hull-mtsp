@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <iterator>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -56,7 +57,7 @@ uint32_t Cht::insert_node(const uint32_t node, const size_t pos, const std::vect
     } else {
         tour_.insert(it_pos, node);
         check_complete_tour_();
-        compute_events_(dist_matrix);
+        compute_events_(pos, dist_matrix);
         if (tour_.front() == 0 && tour_.back() == 0) {
             complete_tour_ = true;
         } else complete_tour_ = false;
@@ -94,7 +95,7 @@ uint32_t Cht::remove_node(const size_t pos, const std::vector<std::vector<uint32
         uint32_t new_obj { compute_obj_remove_(pos - 1, pos, pos + 1, dist_matrix) };
         tour_.erase(it_pos);
         check_complete_tour_();
-        compute_events_(dist_matrix);
+        compute_events_(pos, dist_matrix);
         return new_obj;
     }
 }
@@ -127,11 +128,13 @@ uint32_t Cht::remove_node(const size_t pos, const std::vector<std::vector<uint32
  * @param node The node to be found.
  * @return The index of the found node.
  */
-[[nodiscard]] size_t Cht::get_pos_for_node(const uint32_t node) const {
+[[nodiscard]] std::optional<size_t> Cht::get_pos_for_node(const uint32_t node) const {
     auto it { std::find(tour_.begin(), tour_.end(), node) };
+
     if (it == tour_.end()) {
-        throw std::logic_error("node not found");
+        return std::nullopt;
     }
+
     return std::distance(tour_.begin(), it);
 }
 
@@ -248,9 +251,37 @@ uint32_t Cht::compute_events_(const std::vector<std::vector<uint32_t>>& dist_mat
 }
 
 
+uint32_t Cht::compute_events_(const uint32_t inserted_pos, const std::vector<std::vector<uint32_t>>& dist_matrix) {
+    if (inserted_pos > tour_.size() - 1) {
+        throw std::logic_error("error: cannot compute events on out of range position");
+    }
+    std::vector<uint32_t> new_events {  };
+    std::vector<uint32_t> old_events { events_ };
+    for (auto i{ inserted_pos }; i < tour_.size(); i++) {
+        if (inserted_pos == 0) {
+            compute_events_(dist_matrix);
+            return events_.back();
+        }
+        uint32_t curr_node { tour_.at(i) };
+        uint32_t prev_node { tour_.at(i - 1) };
+        uint32_t new_event_diff { dist_matrix.at(prev_node).at(curr_node) };
+        if (i == inserted_pos) {
+            new_events.push_back(new_event_diff + events_.at(i - 1));
+        }
+        else {
+            new_events.push_back(new_event_diff + new_events.back());
+        }
+    }
+    events_.erase(events_.begin() + inserted_pos, events_.end());
+    events_.insert(events_.end(), new_events.begin(), new_events.end());
+    return events_.back();
+}
+
+
 uint32_t Cht::push_back(const uint32_t node, const std::vector<std::vector<uint32_t>>& dist_matrix) {
     tour_.push_back(node);
-    compute_events_(dist_matrix);
+    size_t pos { tour_.size() - 1 };
+    compute_events_(pos, dist_matrix);
     check_complete_tour_();
     if (tour_.front() == 0 && tour_.back() == 0) {
         complete_tour_ = true;
@@ -302,7 +333,7 @@ uint32_t Cht::pop_back(const std::vector<std::vector<uint32_t>>& dist_matrix) {
     }
     uint32_t new_obj { compute_obj_remove_(true, dist_matrix) };
     tour_.pop_back();
-    compute_events_(dist_matrix);
+    compute_events_(tour_.size() - 1, dist_matrix);
     check_complete_tour_();
     return new_obj;
 }

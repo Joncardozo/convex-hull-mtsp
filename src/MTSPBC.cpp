@@ -1,5 +1,6 @@
 #include "MTSPBC.hpp"
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <algorithm>
 #include <utility>
@@ -72,6 +73,12 @@ uint32_t collect_events_(const uint32_t& vehicle, const uint32_t& node_index) {
 }
 
 
+uint32_t MTSPBC::compute_max_distances_() {
+
+    return 0;
+}
+
+
 //getters
 [[nodiscard]] uint32_t MTSPBC::get_total_obj() const noexcept { return total_obj_; }
 [[nodiscard]] bool MTSPBC::get_feasibility() const noexcept { return feasible_; }
@@ -81,6 +88,14 @@ uint32_t collect_events_(const uint32_t& vehicle, const uint32_t& node_index) {
 [[nodiscard]] uint32_t MTSPBC::get_n_nodes() const noexcept { return n_nodes_; }
 [[nodiscard]] uint32_t MTSPBC::get_k_vehicles() const noexcept { return k_vehicles_; }
 [[nodiscard]] uint32_t MTSPBC::get_r_radius() const noexcept { return r_radius_; }
+[[nodiscard]] uint32_t MTSPBC::get_cost(const uint32_t node_A, const uint32_t node_B) const { return dist_matrix_.at(node_A).at(node_B); }
+[[nodiscard]] std::pair<uint32_t, uint32_t> MTSPBC::get_event(const uint32_t e_index) const {
+    if (e_index > events_.size() - 1) {
+        throw std::logic_error("error: event out of range");
+    }
+    return events_.at(e_index);
+}
+[[nodiscard]] uint32_t MTSPBC::get_n_events() const noexcept { return events_.size(); }
 
 
 // Cht wrapper methods
@@ -88,7 +103,9 @@ uint32_t MTSPBC::insert_node(const uint32_t vehicle, const uint32_t node, const 
     if (k_vehicles_ - 1 < vehicle) {
         throw std::logic_error("error: vehicle do not exist");
     }
-    total_obj_ += tours_.at(vehicle).insert_node(node, pos, dist_matrix_);
+    uint32_t old_obj { tours_.at(vehicle).get_obj() };
+    uint32_t new_obj { tours_.at(vehicle).insert_node(node, pos, dist_matrix_) };
+    total_obj_ += new_obj - old_obj;
     collect_events_();
     return total_obj_;
 }
@@ -170,11 +187,12 @@ uint32_t MTSPBC::pop_front(const uint32_t vehicle) {
 }
 
 
-[[nodiscard]] size_t MTSPBC::get_pos_for_node(const uint32_t vehicle, const uint32_t node) const {
-    if (k_vehicles_ - 1 < vehicle) {
-        throw std::logic_error("error: vehicle do not exist");
+[[nodiscard]] std::optional<size_t> MTSPBC::get_pos_for_node(const uint32_t vehicle, const uint32_t node) const {
+    auto rv { tours_.at(vehicle).get_pos_for_node(node) };
+    if (!rv) {
+        return std::nullopt;
     }
-    return tours_.at(vehicle).get_pos_for_node(node);
+    return rv.value();
 }
 
 
@@ -191,4 +209,12 @@ uint32_t MTSPBC::pop_front(const uint32_t vehicle) {
         throw std::logic_error("error: vehicle do not exist");
     }
     return tours_.at(vehicle).get_complete();
+}
+
+
+[[nodiscard]] std::vector<uint32_t> MTSPBC::get_vehicle_events(const uint32_t vehicle) const {
+    if (k_vehicles_ - 1 < vehicle) {
+        throw std::logic_error("error: vehicle do not exist");
+    }
+    return tours_.at(vehicle).get_events();
 }

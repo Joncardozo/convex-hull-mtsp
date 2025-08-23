@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <optional>
 
 class Cht {
     private:
@@ -11,6 +12,7 @@ class Cht {
         std::vector<uint32_t> events_;
         bool complete_tour_;                    // set true it tour starts and ends at depot (0 node)
         uint32_t compute_events_(const std::vector<std::vector<uint32_t>>& dist_matrix);
+        uint32_t compute_events_(const uint32_t inserted_pos, const std::vector<std::vector<uint32_t>>& dist_matrix);
         uint32_t compute_obj_insert_(size_t pos_A, size_t pos_B, size_t pos_C, const std::vector<std::vector<uint32_t>>& dist_matrix);
         uint32_t compute_obj_insert_(const bool at_end, const std::vector<std::vector<uint32_t>>& dist_matrix);
         uint32_t compute_obj_remove_(size_t pos_A, size_t pos_B, size_t pos_C, const std::vector<std::vector<uint32_t>>& dist_matrix);
@@ -26,7 +28,7 @@ class Cht {
         uint32_t pop_front(const std::vector<std::vector<uint32_t>>& dist_matrix);
         [[nodiscard]] uint32_t get_obj() const noexcept;
         [[nodiscard]]std::vector<uint32_t> get_tour() const noexcept;
-        [[nodiscard]] size_t get_pos_for_node(const uint32_t node) const;
+        [[nodiscard]] std::optional<size_t> get_pos_for_node(const uint32_t node) const;
         [[nodiscard]] uint32_t get_node_at_pos(const size_t pos) const;
         [[nodiscard]] size_t n_nodes() const noexcept;
         [[nodiscard]] std::vector<uint32_t> get_events() const noexcept;

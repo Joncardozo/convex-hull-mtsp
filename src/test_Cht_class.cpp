@@ -144,6 +144,6 @@ TEST_F(ChmtspTest, GetPosNode) {
     tour_test.push_back(2, matriz_dist);
     tour_test.push_back(0, matriz_dist);
     tour_test.push_front(0, matriz_dist);
-    size_t index { tour_test.get_pos_for_node(3) };
+    auto index { tour_test.get_pos_for_node(3) };
     EXPECT_EQ(index, 2);
 }

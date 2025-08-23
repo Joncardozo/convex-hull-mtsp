@@ -5,6 +5,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <stdexcept>
 #include <sys/types.h>
 #include <vector>
 #include <algorithm>
@@ -81,7 +83,96 @@ uint32_t find_onion_hull(MTSPBC& solution, std::vector<size_t>& un_nodes, const 
     return 0;
 }
 
-// std::vector<std::vector<uint32_t>> find_onion_hull();    // find the hull for every vehicle
-// std::vector<uint32_t> find_route();                      // find the route for one vehicle
-// std::vector<std::vector<uint32_t>> find_solution();      // find heuristic solution
+
+uint32_t cheapest_insertion(MTSPBC& solution, std::vector<size_t>& un_nodes, const std::vector<Coord>& coord) {      // find heuristic solution
+    if (solution.get_total_obj() == 0) {
+        throw std::logic_error("error: cheapest heuristic over empty solution not allowed");
+    }
+    while(un_nodes.size() > 0) {
+        uint32_t k_index {};
+        uint32_t position {};
+        uint32_t new_cost { 999999 };
+        uint32_t unassigned_index {};
+        for (auto un { 0 }; un < un_nodes.size(); un++) {
+            for (auto k{ 0 }; k < solution.get_k_vehicles(); k++) {
+                for (auto i{ 0 }; i < solution.get_tour(k).size(); i++) {
+                    std::vector<uint32_t> insertion_hull { solution.get_tour(k) };
+                    size_t past_node {};
+                    if (i > 0) {
+                        past_node = insertion_hull.at(i - 1);
+                    }
+                    size_t inserted_node { un_nodes[un] };
+                    size_t next_node { insertion_hull.at(i) };
+                    insertion_hull.insert(insertion_hull.begin() + i, un_nodes[un]);
+                    uint32_t temp_cost { solution.get_obj_vehicle(k) };
+                    if (i == 0) {
+                        temp_cost += solution.get_cost(next_node, inserted_node);
+                    }
+                    else {
+                        temp_cost += solution.get_cost(past_node, inserted_node) + solution.get_cost(next_node, inserted_node);
+                    }
+                    if (temp_cost < new_cost) {
+                        position = i;
+                        k_index = k;
+                        new_cost = temp_cost;
+                        unassigned_index = un;
+                    }
+                }
+            }
+        }
+        solution.insert_node(k_index, un_nodes[unassigned_index], position);
+        unassign(solution.get_tour(k_index), un_nodes);
+    }
+    return solution.get_total_obj();
+}
+
+
+uint32_t assign_garage(MTSPBC &solution, std::vector<size_t>& un_nodes) {
+
+    std::optional<uint32_t> vehicle_at_depot { std::nullopt };
+
+
+    for (auto h{ 0 }; h < solution.get_k_vehicles(); h++) {
+        auto pos { solution.get_pos_for_node(h, 0) };
+        if (pos) {
+            vehicle_at_depot = h;
+            break;
+        }
+    }
+
+
+    for (uint32_t k{}; k < solution.get_k_vehicles(); k++) {
+        if (k == vehicle_at_depot.value()) {
+            continue;
+        }
+        uint32_t new_cost{ 999999 };
+        uint32_t position{};
+        for (uint32_t i{ 0 }; i < solution.get_tour(k).size(); i++) {
+            std::vector<uint32_t> insertion_hull { solution.get_tour(k) };
+            insertion_hull.insert(insertion_hull.begin() + i, 0);
+            size_t past_node {};
+            if (i > 0) {
+                past_node = insertion_hull.at(i - 1);
+            }
+            size_t next_node { insertion_hull.at(i) };
+            insertion_hull.insert(insertion_hull.begin() + i, 0);
+            uint32_t temp_cost { solution.get_obj_vehicle(k) };
+            if (i == 0) {
+                temp_cost += solution.get_cost(next_node, 0);
+            }
+            else {
+                temp_cost += solution.get_cost(past_node, 0) + solution.get_cost(next_node, 0);
+            }
+            if (temp_cost < new_cost) {
+                position = i;
+                new_cost = temp_cost;
+            }
+        }
+        solution.insert_node(k, 0, position);
+    }
+    if (!un_nodes.empty())
+        if (un_nodes[0] == 0)
+            un_nodes.erase(un_nodes.begin());
+    return solution.get_total_obj();
+}
 // std::vector<uint32_t> remove_covered_nodes(std::vector<uint32_t> hull);   // remove node from convex hull if the remaining hull covers it

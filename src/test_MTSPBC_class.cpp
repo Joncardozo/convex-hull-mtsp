@@ -111,6 +111,48 @@ TEST_F(MTSPBCTest, CollectEvents) {
         }
         n_events += solution.get_tour(i).size();
     }
+    int debug { 0 };
     ASSERT_EQ(solution.get_events().back().first, max_obj);
     ASSERT_EQ(solution.get_events().size(), n_events);
+}
+
+
+TEST_F(MTSPBCTest, CheapestInsertion) {
+    MTSPBC solution;
+    for (uint32_t i { 0 }; i < coord.size(); i++) {
+        un_nodes.push_back(i);
+    }
+    solution.create_distance_matrix(read_matrix);
+    for (uint32_t i { 0 }; i < k_vehicles; i++) {
+        solution.create_vehicle();
+    }
+    solution.set_radius(r_radius);
+    find_onion_hull(solution, un_nodes, coord);
+    ASSERT_NO_THROW(cheapest_insertion(solution, un_nodes, coord));
+    int debug { 0 };
+    ASSERT_TRUE(un_nodes.size() == 0);
+    ASSERT_EQ(solution.get_total_obj(), 2396);
+}
+
+
+TEST_F(MTSPBCTest, AssignDepot) {
+    MTSPBC solution;
+    for (uint32_t i { 0 }; i < coord.size(); i++) {
+        un_nodes.push_back(i);
+    }
+    solution.create_distance_matrix(read_matrix);
+    for (uint32_t i { 0 }; i < k_vehicles; i++) {
+        solution.create_vehicle();
+    }
+    solution.set_radius(r_radius);
+    find_onion_hull(solution, un_nodes, coord);
+    ASSERT_NO_THROW(cheapest_insertion(solution, un_nodes, coord));
+    assign_garage(solution, un_nodes);
+    int debug { 0 };
+    ASSERT_TRUE(un_nodes.size() == 0);
+    ASSERT_GE(solution.get_total_obj(), 2397);
+    for (uint32_t i { 0 }; i < solution.get_k_vehicles(); i++) {
+        int debug {};
+        ASSERT_TRUE(solution.get_pos_for_node(i, 0));
+    }
 }

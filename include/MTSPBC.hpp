@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <utility>
 #include <vector>
 #include "Cht.hpp"
@@ -43,6 +44,9 @@ class MTSPBC {
     [[nodiscard]] uint32_t get_n_nodes() const noexcept;
     [[nodiscard]] uint32_t get_k_vehicles() const noexcept;
     [[nodiscard]] uint32_t get_r_radius() const noexcept;
+    [[nodiscard]] uint32_t get_cost(const uint32_t node_A, const uint32_t node_B) const;
+    [[nodiscard]] std::pair<uint32_t, uint32_t> get_event(const uint32_t e_index) const;
+    [[nodiscard]] uint32_t get_n_events() const noexcept;
 
     // Cht wrapper methods
     uint32_t insert_node(const uint32_t vehicle, const uint32_t node, const size_t pos);
@@ -53,7 +57,9 @@ class MTSPBC {
     uint32_t pop_front(const uint32_t vehicle);
     [[nodiscard]] uint32_t get_obj_vehicle(const uint32_t vehicle) const;
     [[nodiscard]] std::vector<uint32_t> get_tour(const uint32_t vehicle) const;
-    [[nodiscard]] size_t get_pos_for_node(const uint32_t vehicle, const uint32_t node) const;
+    [[nodiscard]] std::optional<size_t> get_pos_for_node(const uint32_t vehicle, const uint32_t node) const;
     [[nodiscard]] uint32_t get_node_at_pos(const uint32_t vehicle, const size_t pos) const;
     [[nodiscard]] bool get_complete_tour(const uint32_t vehicle) const;
+    [[nodiscard]] std::vector<uint32_t> get_vehicle_events(const uint32_t vehicle) const;
+
 };
