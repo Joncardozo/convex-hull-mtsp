@@ -2,20 +2,23 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
 #include "Cht.hpp"
+#include "MTSPBC_ds.hpp"
+#include "MTSPBCInstance.hpp"
 
 
 class MTSPBC {
     private:
+    const MTSPBCInstance& instance_;
     uint32_t total_obj_;
     uint32_t k_vehicles_;
     uint32_t n_nodes_;
     uint32_t r_radius_;
     std::vector<Cht> tours_;
-    std::vector<std::vector<uint32_t>> dist_matrix_;
     std::vector<std::pair<uint32_t, uint32_t>> events_;
     std::vector<uint32_t> max_distance_events_;
     bool feasible_;
@@ -30,12 +33,14 @@ class MTSPBC {
 
 
     public:
-    MTSPBC();
+    MTSPBC(const MTSPBCInstance& instance);
     // MSTPBC methods
-    uint32_t create_distance_matrix(const std::vector<std::vector<uint32_t>>& matrix);
+    uint32_t create_distance_matrix(std::shared_ptr<std::vector<std::vector<uint32_t>>> matrix);
+    uint32_t create_coord(std::shared_ptr<std::vector<Coord>> coord);
     uint32_t create_vehicle();
     uint32_t remove_vehicle(const uint32_t vehicle_index);
     uint32_t set_radius(const uint32_t r_radius);
+    void save_solution(const std::string& filepath);
     [[nodiscard]] uint32_t get_total_obj() const noexcept;
     [[nodiscard]] std::vector<std::pair<uint32_t, uint32_t>> get_events() const noexcept;
     [[nodiscard]] bool get_feasibility() const noexcept;
@@ -47,6 +52,7 @@ class MTSPBC {
     [[nodiscard]] uint32_t get_cost(const uint32_t node_A, const uint32_t node_B) const;
     [[nodiscard]] std::pair<uint32_t, uint32_t> get_event(const uint32_t e_index) const;
     [[nodiscard]] uint32_t get_n_events() const noexcept;
+    [[nodiscard]] Coord get_coord(uint32_t node) const;
 
     // Cht wrapper methods
     uint32_t insert_node(const uint32_t vehicle, const uint32_t node, const size_t pos);
@@ -59,7 +65,7 @@ class MTSPBC {
     [[nodiscard]] std::vector<uint32_t> get_tour(const uint32_t vehicle) const;
     [[nodiscard]] std::optional<size_t> get_pos_for_node(const uint32_t vehicle, const uint32_t node) const;
     [[nodiscard]] uint32_t get_node_at_pos(const uint32_t vehicle, const size_t pos) const;
+    [[nodiscard]] uint32_t get_node_at_event(const uint32_t vehicle, const uint32_t e_time) const;
     [[nodiscard]] bool get_complete_tour(const uint32_t vehicle) const;
     [[nodiscard]] std::vector<uint32_t> get_vehicle_events(const uint32_t vehicle) const;
-
 };

@@ -1,51 +1,46 @@
-#include "chmtsp_util.cpp"
-#include "chmtsp_util.hpp"
 #include "Cht.hpp"
+#include "MTSPBCInstance.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <gtest/gtest.h>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
 
 // setup inicial - ler instância
 class ChmtspTest : public ::testing::Test {
+
     protected:
-    static std::vector<std::vector<uint32_t>> read_matrix;
-    static std::vector<size_t> un_nodes;
-    static std::vector<Coord> coord;
-    static uint32_t k_vehicles;
-    static uint32_t n_nodes;
-    static uint32_t r_radius;
+
+    static std::unique_ptr<MTSPBCInstance> instance;
 
     static void SetUpTestSuite() {
-        std::string dist_file_path {"../experiments/inst.dat"};
-        std::string cover_file_path {"../experiments/cover.dat"};
-        std::string inst_file_path { "../experiments/BC/R1_5v_200n.bc" };
-        read_instance(inst_file_path, coord, k_vehicles, n_nodes, r_radius);
-        read_inst_dist(dist_file_path);
-        read_cover(cover_file_path);
+        std::string filepath {"../experiments/BC/R1_5v_200n.bc"};
+        std::string dist_filepath {"../experiments/inst.dat"};
+        instance = std::make_unique<MTSPBCInstance>(filepath, dist_filepath);
     }
+
+    static void TearDownTestSuite() {
+        instance.reset();
+    }
+
 };
 
 
-std::vector<std::vector<uint32_t>> ChmtspTest::read_matrix;
-std::vector<size_t> ChmtspTest::un_nodes;
-std::vector<Coord> ChmtspTest::coord;
-uint32_t ChmtspTest::n_nodes;
-uint32_t ChmtspTest::r_radius;
-uint32_t ChmtspTest::k_vehicles;
+std::unique_ptr<MTSPBCInstance> ChmtspTest::instance = nullptr;
+
 
 
 // testa se o valor da funcão objetivo é calculada corretamente
 TEST_F(ChmtspTest, ComputesObjClass) {
     // testa classe Cht (tour de um veículo)
     Cht tour_vehicle_0;
-
-    tour_vehicle_0.push_front(1, matriz_dist);
-    tour_vehicle_0.push_front(3, matriz_dist);
-    tour_vehicle_0.push_front(0, matriz_dist);
-    tour_vehicle_0.push_back(0, matriz_dist);
+    const MTSPBCInstance& cref = *instance;
+    tour_vehicle_0.push_front(1, cref);
+    tour_vehicle_0.push_front(3, cref);
+    tour_vehicle_0.push_front(0, cref);
+    tour_vehicle_0.push_back(0, cref);
 
     uint32_t obj { tour_vehicle_0.get_obj() };
 
@@ -57,16 +52,16 @@ TEST_F(ChmtspTest, ComputesObjClass) {
 TEST_F(ChmtspTest, InsertionDeletion) {
     // instancia objeto da classe
     Cht tour_vehicle_0;
-
-    tour_vehicle_0.push_front(2, matriz_dist);
-    tour_vehicle_0.push_front(5, matriz_dist);
-    tour_vehicle_0.insert_node(1, 1, matriz_dist);
-    tour_vehicle_0.remove_node(2, matriz_dist);
-    tour_vehicle_0.insert_node(3, 1, matriz_dist);
-    tour_vehicle_0.insert_node(4, 0, matriz_dist);
-    tour_vehicle_0.remove_node(3, matriz_dist);
-    tour_vehicle_0.push_back(2, matriz_dist);
-    tour_vehicle_0.remove_node(0, matriz_dist);
+    const MTSPBCInstance& cref = *instance;
+    tour_vehicle_0.push_front(2, cref);
+    tour_vehicle_0.push_front(5, cref);
+    tour_vehicle_0.insert_node(1, 1, cref);
+    tour_vehicle_0.remove_node(2, cref);
+    tour_vehicle_0.insert_node(3, 1, cref);
+    tour_vehicle_0.insert_node(4, 0, cref);
+    tour_vehicle_0.remove_node(3, cref);
+    tour_vehicle_0.push_back(2, cref);
+    tour_vehicle_0.remove_node(0, cref);
 
     bool complete_tour{ tour_vehicle_0.check_complete_tour_() };
 
@@ -81,18 +76,21 @@ TEST_F(ChmtspTest, InsertionDeletion) {
 // testa exceções na inserção/remoção de nós fora de limite de índice
 TEST_F(ChmtspTest, ThrowExceptionBounds) {
     Cht tour_vehicle_0;
-    ASSERT_THROW(tour_vehicle_0.pop_back(matriz_dist), std::logic_error);
-    ASSERT_THROW(tour_vehicle_0.pop_front(matriz_dist), std::logic_error);
-    ASSERT_THROW(tour_vehicle_0.remove_node(1, matriz_dist), std::logic_error);
+    const MTSPBCInstance& cref = *instance;
+
+    ASSERT_THROW(tour_vehicle_0.pop_back(cref), std::logic_error);
+    ASSERT_THROW(tour_vehicle_0.pop_front(cref), std::logic_error);
+    ASSERT_THROW(tour_vehicle_0.remove_node(1, cref), std::logic_error);
 }
 
 
 // testa se a lista de eventos é calculada corretamente
 TEST_F(ChmtspTest, GetEventLists) {
     Cht tour_test;
-    tour_test.push_back(5, matriz_dist);
-    tour_test.push_back(3, matriz_dist);
-    tour_test.push_back(2, matriz_dist);
+    const MTSPBCInstance& cref = *instance;
+    tour_test.push_back(5, cref);
+    tour_test.push_back(3, cref);
+    tour_test.push_back(2, cref);
     std::vector<uint32_t> expected_events { 0, 71,  150 };
     std::vector<uint32_t> events { tour_test.get_events() };
     EXPECT_EQ(events, expected_events);
@@ -100,11 +98,13 @@ TEST_F(ChmtspTest, GetEventLists) {
 
 TEST_F(ChmtspTest, IsCompleteRoute) {
     Cht tour_test;
-    tour_test.push_back(5, matriz_dist);
-    tour_test.push_back(3, matriz_dist);
-    tour_test.push_back(2, matriz_dist);
-    tour_test.push_back(0, matriz_dist);
-    tour_test.push_front(0, matriz_dist);
+    const MTSPBCInstance& cref = *instance;
+
+    tour_test.push_back(5, cref);
+    tour_test.push_back(3, cref);
+    tour_test.push_back(2, cref);
+    tour_test.push_back(0, cref);
+    tour_test.push_front(0, cref);
     bool complete_route { tour_test.get_complete() };
 }
 
@@ -112,11 +112,13 @@ TEST_F(ChmtspTest, IsCompleteRoute) {
 // testa se é possível obter a lista de nós da rota
 TEST_F(ChmtspTest, GetRoute) {
     Cht tour_test;
-    tour_test.push_back(5, matriz_dist);
-    tour_test.push_back(3, matriz_dist);
-    tour_test.push_back(2, matriz_dist);
-    tour_test.push_back(0, matriz_dist);
-    tour_test.push_front(0, matriz_dist);
+    const MTSPBCInstance& cref = *instance;
+
+    tour_test.push_back(5, cref);
+    tour_test.push_back(3, cref);
+    tour_test.push_back(2, cref);
+    tour_test.push_back(0, cref);
+    tour_test.push_front(0, cref);
     std::vector<uint32_t> got_route { tour_test.get_tour() };
     std::vector<uint32_t> expected_route { 0, 5, 3, 2, 0 };
     EXPECT_EQ(got_route, expected_route);
@@ -126,11 +128,13 @@ TEST_F(ChmtspTest, GetRoute) {
 // testa se é possível receber um nó a partir de um índice da rota
 TEST_F(ChmtspTest, GetNodePos) {
     Cht tour_test;
-    tour_test.push_back(5, matriz_dist);
-    tour_test.push_back(3, matriz_dist);
-    tour_test.push_back(2, matriz_dist);
-    tour_test.push_back(0, matriz_dist);
-    tour_test.push_front(0, matriz_dist);
+    const MTSPBCInstance& cref = *instance;
+
+    tour_test.push_back(5, cref);
+    tour_test.push_back(3, cref);
+    tour_test.push_back(2, cref);
+    tour_test.push_back(0, cref);
+    tour_test.push_front(0, cref);
     uint32_t node { tour_test.get_node_at_pos(2) };
     EXPECT_EQ(node, 3);
 }
@@ -139,11 +143,13 @@ TEST_F(ChmtspTest, GetNodePos) {
 // testa se recebe um índice a partir de um nó, se houver o nó na rota
 TEST_F(ChmtspTest, GetPosNode) {
     Cht tour_test;
-    tour_test.push_back(5, matriz_dist);
-    tour_test.push_back(3, matriz_dist);
-    tour_test.push_back(2, matriz_dist);
-    tour_test.push_back(0, matriz_dist);
-    tour_test.push_front(0, matriz_dist);
+    const MTSPBCInstance& cref = *instance;
+
+    tour_test.push_back(5, cref);
+    tour_test.push_back(3, cref);
+    tour_test.push_back(2, cref);
+    tour_test.push_back(0, cref);
+    tour_test.push_front(0, cref);
     auto index { tour_test.get_pos_for_node(3) };
     EXPECT_EQ(index, 2);
 }

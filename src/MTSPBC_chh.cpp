@@ -2,7 +2,6 @@
 #include "MTSPBC.hpp"
 #include "Cht.hpp"
 #include "MTSPBC_util.hpp"
-
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -12,13 +11,13 @@
 #include <algorithm>
 
 
-uint32_t add_convex_hull(MTSPBC& solution, const uint32_t vehicle, std::vector<size_t>& un_nodes, const std::vector<Coord>& coord) {              // find the hull for one vehicle
+uint32_t add_convex_hull(MTSPBC& solution, const uint32_t vehicle, std::vector<size_t>& un_nodes, const MTSPBCInstance& instance) {              // find the hull for one vehicle
     Cht tour;
     // Find the leftmost unassigned node
     size_t point_left_most_i = un_nodes[0];
     for (size_t idx = 1; idx < un_nodes.size(); idx++) {
-        Coord left_most_coord = coord[point_left_most_i];
-        Coord current_point = coord[un_nodes[idx]];
+        Coord left_most_coord = instance.coordinate(point_left_most_i);
+        Coord current_point = instance.coordinate(un_nodes[idx]);
         if (current_point.pos_x < left_most_coord.pos_x ||
             (current_point.pos_x == left_most_coord.pos_x &&
              current_point.pos_y < left_most_coord.pos_y)) {
@@ -30,13 +29,13 @@ uint32_t add_convex_hull(MTSPBC& solution, const uint32_t vehicle, std::vector<s
     std::vector<Nodes> nodes;
     Nodes point_left_most;
     point_left_most.index = point_left_most_i;
-    point_left_most.pos = coord[point_left_most_i];
+    point_left_most.pos = instance.coordinate(point_left_most_i);
     for (size_t i = 0; i < un_nodes.size(); i++) {
         size_t idx = un_nodes[i];
         if (idx != point_left_most_i) {
             Nodes n;
             n.index = idx;
-            n.pos = coord[idx];
+            n.pos = instance.coordinate(idx);
             nodes.push_back(n);
         }
     }
@@ -71,20 +70,20 @@ uint32_t add_convex_hull(MTSPBC& solution, const uint32_t vehicle, std::vector<s
 }
 
 
-uint32_t find_onion_hull(MTSPBC& solution, std::vector<size_t>& un_nodes, const std::vector<Coord>& coord) {
+uint32_t find_onion_hull(MTSPBC& solution, std::vector<size_t>& un_nodes, const MTSPBCInstance& instance) {
 
     uint32_t k_vehicles { solution.get_k_vehicles() };
 
     // iterativamente, encontra uma rota para cada veículo
     for (uint32_t i{ 0 }; i < k_vehicles; i++) {
-        add_convex_hull(solution, i, un_nodes, coord);
+        add_convex_hull(solution, i, un_nodes, instance);
         unassign(solution.get_tour(i), un_nodes);
     }
     return 0;
 }
 
 
-uint32_t cheapest_insertion(MTSPBC& solution, std::vector<size_t>& un_nodes, const std::vector<Coord>& coord) {      // find heuristic solution
+uint32_t cheapest_insertion(MTSPBC& solution, std::vector<size_t>& un_nodes, const MTSPBCInstance& instance) {      // find heuristic solution
     if (solution.get_total_obj() == 0) {
         throw std::logic_error("error: cheapest heuristic over empty solution not allowed");
     }
@@ -174,5 +173,29 @@ uint32_t assign_garage(MTSPBC &solution, std::vector<size_t>& un_nodes) {
         if (un_nodes[0] == 0)
             un_nodes.erase(un_nodes.begin());
     return solution.get_total_obj();
+}
+
+
+uint32_t close_tours(MTSPBC& solution) {
+    for (uint32_t i { 0 }; i < solution.get_k_vehicles(); i++) {
+        if (solution.get_complete_tour(i)) {
+            continue;
+        }
+        auto depot_pos { solution.get_pos_for_node(i, 0) };
+        if (!depot_pos) {
+            throw std::logic_error("error: no depot assigned");
+        }
+        size_t remove_nodes { depot_pos.value() };
+        std::vector<uint32_t> first_part {};
+        for (uint32_t j{ 0 }; j < remove_nodes; j++) {
+            first_part.push_back(solution.get_node_at_pos(i, j));
+            solution.remove_node(i, 0);
+        }
+        for (uint32_t j{ 0 }; j < first_part.size(); j++) {
+            solution.push_back(i, first_part.at(j));
+        }
+        solution.push_back(i, 0);
+    }
+    return 0;
 }
 // std::vector<uint32_t> remove_covered_nodes(std::vector<uint32_t> hull);   // remove node from convex hull if the remaining hull covers it

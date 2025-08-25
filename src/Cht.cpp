@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <algorithm>
+#include <ios>
 #include <iterator>
 #include <limits>
 #include <optional>
@@ -40,28 +41,28 @@ Cht::Cht(){
  * objective value of the tour, updating the objective
  * value attribute.
  * @param pos The position where a node should be inserted.
- * @param dist_matrix The cost matrix. c[i][j] is the cost
+ * @param instance The cost matrix. c[i][j] is the cost
  * of travelling from [i] to [j].
  * @return Returns the updated objective value.
  */
-uint32_t Cht::insert_node(const uint32_t node, const size_t pos, const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::insert_node(const uint32_t node, const size_t pos, const MTSPBCInstance& instance) {
     if (tour_.size() - 1 < pos) {
         throw std::logic_error("insert node error: no such position");
         return 0;
     }
     auto it_pos { tour_.begin() + pos };
     if (tour_.size() == 0 || tour_.end() == it_pos) {
-        return push_back(node, dist_matrix);
+        return push_back(node, instance);
     } else if (tour_.begin() == it_pos) {
-        return push_front(node, dist_matrix);
+        return push_front(node, instance);
     } else {
         tour_.insert(it_pos, node);
         check_complete_tour_();
-        compute_events_(pos, dist_matrix);
+        compute_events_(pos, instance);
         if (tour_.front() == 0 && tour_.back() == 0) {
             complete_tour_ = true;
         } else complete_tour_ = false;
-        return compute_obj_insert_(pos - 1, pos, pos + 1, dist_matrix);
+        return compute_obj_insert_(pos - 1, pos, pos + 1, instance);
     }
     return obj_;
 }
@@ -72,11 +73,11 @@ uint32_t Cht::insert_node(const uint32_t node, const size_t pos, const std::vect
  * @details This method removes a node from a given position
  * and updates the objective value.
  * @param pos The position where the node should be removed.
- * @param dist_matrix The cost matrix. c[i][j] is the cost
+ * @param instance The cost matrix. c[i][j] is the cost
  * of travelling from [i] to [j].
  * @return Returns the updated objective value of the tour.
  */
-uint32_t Cht::remove_node(const size_t pos, const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::remove_node(const size_t pos, const MTSPBCInstance& instance) {
     if (tour_.size() - 1 < pos) {
         throw std::logic_error("remove node error: no such position");
         return obj_;
@@ -88,14 +89,14 @@ uint32_t Cht::remove_node(const size_t pos, const std::vector<std::vector<uint32
     auto begin_compare { std::distance(tour_.begin(), it_pos) };
     auto end_compare { std::distance(tour_.end() - 1, it_pos) };
     if (begin_compare == 0) {
-        return pop_front(dist_matrix);
+        return pop_front(instance);
     } else if (end_compare == 0) {
-        return pop_back(dist_matrix);
+        return pop_back(instance);
     } else {
-        uint32_t new_obj { compute_obj_remove_(pos - 1, pos, pos + 1, dist_matrix) };
+        uint32_t new_obj { compute_obj_remove_(pos - 1, pos, pos + 1, instance) };
         tour_.erase(it_pos);
         check_complete_tour_();
-        compute_events_(pos, dist_matrix);
+        compute_events_(pos, instance);
         return new_obj;
     }
 }
@@ -162,16 +163,16 @@ uint32_t Cht::remove_node(const size_t pos, const std::vector<std::vector<uint32
  * @param pos_A The position of the antecessor node.
  * @param pos_B The position of the inserted node.
  * @param pos_C The position of the successor node.
- * @param dist_matrix The cost matrix, (c[i][j]).
+ * @param instance The cost matrix, (c[i][j]).
  * @return The updated objective value.
  */
-uint32_t Cht::compute_obj_insert_(size_t pos_A, size_t pos_B, size_t pos_C, const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::compute_obj_insert_(size_t pos_A, size_t pos_B, size_t pos_C, const MTSPBCInstance& instance) {
     uint32_t node_A { tour_.at(pos_A) };
     uint32_t node_B { tour_.at(pos_B) };
     uint32_t node_C { tour_.at(pos_C) };
-    uint32_t broken_edge_obj { dist_matrix.at(node_A).at(node_C) };
-    uint32_t add_edge_AB { dist_matrix.at(node_A).at(node_B) };
-    uint32_t add_edge_BC { dist_matrix.at(node_B).at(node_C) };
+    uint32_t broken_edge_obj { instance.cost(node_A, node_C) };
+    uint32_t add_edge_AB { instance.cost(node_A, node_B) };
+    uint32_t add_edge_BC { instance.cost(node_B, node_C) };
     uint32_t diff_obj { add_edge_AB + add_edge_BC - broken_edge_obj };
     obj_ += diff_obj;
     return obj_;
@@ -186,26 +187,26 @@ uint32_t Cht::compute_obj_insert_(size_t pos_A, size_t pos_B, size_t pos_C, cons
  * or false if inserting at the beginning.
  * @return The updated objective value.
  */
-uint32_t Cht::compute_obj_insert_(const bool at_end, const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::compute_obj_insert_(const bool at_end, const MTSPBCInstance& instance) {
     if (tour_.size() == 1) {
         return 0;
     }
     if (at_end) {
         uint32_t node_A { tour_.back() };
         uint32_t node_B { tour_.at(tour_.size() - 2) };
-        uint32_t additional_obj { dist_matrix.at(node_A).at(node_B) };
+        uint32_t additional_obj { instance.cost(node_A, node_B) };
         obj_ += additional_obj;
     } else {
         uint32_t node_A { tour_.front() };
         uint32_t node_B { tour_.at(1) };
-        uint32_t additional_obj { dist_matrix.at(node_A).at(node_B) };
+        uint32_t additional_obj { instance.cost(node_A, node_B) };
         obj_ += additional_obj;
     }
     return obj_;
 }
 
 
-uint32_t Cht::compute_obj_remove_(size_t pos_A, size_t pos_B, size_t pos_C, const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::compute_obj_remove_(size_t pos_A, size_t pos_B, size_t pos_C, const MTSPBCInstance& instance) {
     if (tour_.size() < 3) {
         throw std::logic_error("error: cannot remove from middle");
         return 0;
@@ -213,37 +214,37 @@ uint32_t Cht::compute_obj_remove_(size_t pos_A, size_t pos_B, size_t pos_C, cons
     uint32_t node_A { tour_.at(pos_A) };
     uint32_t node_B { tour_.at(pos_B) };
     uint32_t node_C { tour_.at(pos_C) };
-    uint32_t direct_edge_obj { dist_matrix.at(node_A).at(node_C) };
-    uint32_t broken_edge_AB { dist_matrix.at(node_A).at(node_B) };
-    uint32_t broken_edge_BC { dist_matrix.at(node_B).at(node_C) };
+    uint32_t direct_edge_obj { instance.cost(node_A, node_C) };
+    uint32_t broken_edge_AB { instance.cost(node_A, node_B) };
+    uint32_t broken_edge_BC { instance.cost(node_B, node_C) };
     int32_t diff_obj { static_cast<int32_t>(direct_edge_obj - broken_edge_AB - broken_edge_BC) };
     obj_ += diff_obj;
     return obj_;
 }
 
 
-uint32_t Cht::compute_obj_remove_(const bool at_end, const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::compute_obj_remove_(const bool at_end, const MTSPBCInstance& instance) {
     if (tour_.size() == 0 || tour_.size() == 1) {
         obj_ = 0;
     } else if (at_end == true) {
         uint32_t node_A { tour_.back() };
         uint32_t node_B { tour_.at(tour_.size() - 2) };
-        obj_ -= dist_matrix.at(node_A).at(node_B);
+        obj_ -= instance.cost(node_A, node_B);
     } else {
         uint32_t node_A { tour_.front() };
         uint32_t node_B { tour_.at(1) };
-        obj_ -= dist_matrix.at(node_A).at(node_B);
+        obj_ -= instance.cost(node_A, node_B);
     }
     return obj_;
 }
 
 
-uint32_t Cht::compute_events_(const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::compute_events_(const MTSPBCInstance& instance) {
     std::vector<uint32_t> new_events { 0 };
     for (auto i{ 1 }; i < tour_.size(); i++) {
         uint32_t curr_node { tour_.at(i) };
         uint32_t prev_node { tour_.at(i - 1) };
-        uint32_t new_event_diff { dist_matrix.at(prev_node).at(curr_node) };
+        uint32_t new_event_diff { instance.cost(prev_node, curr_node) };
         new_events.push_back(new_event_diff + new_events.back());
     }
     events_ = new_events;
@@ -251,7 +252,7 @@ uint32_t Cht::compute_events_(const std::vector<std::vector<uint32_t>>& dist_mat
 }
 
 
-uint32_t Cht::compute_events_(const uint32_t inserted_pos, const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::compute_events_(const uint32_t inserted_pos, const MTSPBCInstance& instance) {
     if (inserted_pos > tour_.size() - 1) {
         throw std::logic_error("error: cannot compute events on out of range position");
     }
@@ -259,12 +260,12 @@ uint32_t Cht::compute_events_(const uint32_t inserted_pos, const std::vector<std
     std::vector<uint32_t> old_events { events_ };
     for (auto i{ inserted_pos }; i < tour_.size(); i++) {
         if (inserted_pos == 0) {
-            compute_events_(dist_matrix);
+            compute_events_(instance);
             return events_.back();
         }
         uint32_t curr_node { tour_.at(i) };
         uint32_t prev_node { tour_.at(i - 1) };
-        uint32_t new_event_diff { dist_matrix.at(prev_node).at(curr_node) };
+        uint32_t new_event_diff { instance.cost(prev_node, curr_node) };
         if (i == inserted_pos) {
             new_events.push_back(new_event_diff + events_.at(i - 1));
         }
@@ -278,10 +279,10 @@ uint32_t Cht::compute_events_(const uint32_t inserted_pos, const std::vector<std
 }
 
 
-uint32_t Cht::push_back(const uint32_t node, const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::push_back(const uint32_t node, const MTSPBCInstance& instance) {
     tour_.push_back(node);
     size_t pos { tour_.size() - 1 };
-    compute_events_(pos, dist_matrix);
+    compute_events_(pos, instance);
     check_complete_tour_();
     if (tour_.front() == 0 && tour_.back() == 0) {
         complete_tour_ = true;
@@ -291,49 +292,49 @@ uint32_t Cht::push_back(const uint32_t node, const std::vector<std::vector<uint3
     if (tour_.size() == 1) {
         return 0;
     }
-    return compute_obj_insert_(true, dist_matrix);
+    return compute_obj_insert_(true, instance);
 }
 
 
-uint32_t Cht::push_front(const uint32_t node, const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::push_front(const uint32_t node, const MTSPBCInstance& instance) {
     if (tour_.size() == 0) {
         tour_.push_back(node);
-        compute_events_(dist_matrix);
+        compute_events_(instance);
         return 0;
     }
     tour_.insert(tour_.begin(), node);
-    compute_events_(dist_matrix);
+    compute_events_(instance);
     check_complete_tour_();
     if (tour_.front() == 0 && tour_.back() == 0) {
         complete_tour_ = true;
     } else {
         complete_tour_ = false;
     }
-    return compute_obj_insert_(false, dist_matrix);
+    return compute_obj_insert_(false, instance);
 }
 
 
-uint32_t Cht::pop_front(const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::pop_front(const MTSPBCInstance& instance) {
     if (tour_.size() == 0) {
         throw std::logic_error("error: cannot remove node from empty tour");
         return std::numeric_limits<uint32_t>::max();
     }
-    uint32_t new_obj{ compute_obj_remove_(false, dist_matrix) };
+    uint32_t new_obj{ compute_obj_remove_(false, instance) };
     tour_.erase(tour_.begin());
-    compute_events_(dist_matrix);
+    compute_events_(instance);
     check_complete_tour_();
     return new_obj;
 }
 
 
-uint32_t Cht::pop_back(const std::vector<std::vector<uint32_t>>& dist_matrix) {
+uint32_t Cht::pop_back(const MTSPBCInstance& instance) {
     if (tour_.size() == 0) {
         throw std::logic_error("cannot remove node: empty tour");
         return 0;
     }
-    uint32_t new_obj { compute_obj_remove_(true, dist_matrix) };
+    uint32_t new_obj { compute_obj_remove_(true, instance) };
     tour_.pop_back();
-    compute_events_(tour_.size() - 1, dist_matrix);
+    compute_events_(tour_.size() - 1, instance);
     check_complete_tour_();
     return new_obj;
 }
@@ -360,3 +361,12 @@ bool Cht::check_complete_tour_() {
 
 
 [[nodiscard]] bool Cht::get_complete() const noexcept { return complete_tour_; }
+
+
+[[nodiscard]] std::optional<uint32_t> Cht::get_node_at_event(const uint32_t e_time) const {
+    auto e_node { std::find(events_.begin(), events_.end(), e_time) };
+    if (e_node == events_.end()) {
+        return std::nullopt;
+    }
+    return std::distance(events_.begin(), e_node);
+}
