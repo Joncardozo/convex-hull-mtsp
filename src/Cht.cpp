@@ -206,6 +206,27 @@ uint32_t Cht::compute_obj_insert_(const bool at_end, const MTSPBCInstance& insta
 }
 
 
+uint32_t Cht::compute_obj_insert_(const uint32_t pos_i, const uint32_t pos_e, const MTSPBCInstance& instance) {
+    uint32_t subtour_obj { 0 };
+    uint32_t last_i { pos_i };
+    for (uint32_t i { pos_i }; i <= pos_e; i++) {
+        if (i == pos_i) {
+            continue;
+        }
+        subtour_obj += instance.cost(tour_.at(last_i), tour_.at(i));
+        last_i = i;
+    }
+    if (pos_i != 0) {
+        subtour_obj += instance.cost(tour_.at(pos_i - 1), tour_.at(pos_i));
+    }
+    if (pos_e != tour_.size() - 1) {
+        subtour_obj += instance.cost(tour_.at(pos_e), tour_.at(pos_e + 1));
+    }
+    obj_ += subtour_obj;
+    return obj_;
+}
+
+
 uint32_t Cht::compute_obj_remove_(size_t pos_A, size_t pos_B, size_t pos_C, const MTSPBCInstance& instance) {
     if (tour_.size() < 3) {
         throw std::logic_error("error: cannot remove from middle");
@@ -235,6 +256,27 @@ uint32_t Cht::compute_obj_remove_(const bool at_end, const MTSPBCInstance& insta
         uint32_t node_B { tour_.at(1) };
         obj_ -= instance.cost(node_A, node_B);
     }
+    return obj_;
+}
+
+
+uint32_t Cht::compute_obj_remove_(const uint32_t pos_i, const uint32_t pos_e, const MTSPBCInstance& instance) {
+    uint32_t obj_sub { 0 };
+    uint32_t last_i { pos_i };
+    for (uint32_t i { pos_i }; i <= pos_e; i++) {
+        if (i == pos_i) {
+            continue;
+        }
+        obj_sub += instance.cost(tour_.at(i), tour_.at(last_i));
+        last_i = i;
+    }
+    if (pos_i != 0) {
+        obj_sub += instance.cost(tour_.at(pos_i - 1), tour_.at(pos_i));
+    }
+    if (pos_e != tour_.size() - 1) {
+        obj_sub += instance.cost(tour_.at(pos_e + 1), tour_.at(pos_e));
+    }
+    obj_ -= obj_sub;
     return obj_;
 }
 
@@ -337,6 +379,55 @@ uint32_t Cht::pop_back(const MTSPBCInstance& instance) {
     compute_events_(tour_.size() - 1, instance);
     check_complete_tour_();
     return new_obj;
+}
+
+
+uint32_t Cht::insert_subtour(const MTSPBCInstance& instance, const std::vector<uint32_t>& subtour_indices, const uint32_t pos_i, const uint32_t pos_e) {
+    if (pos_i > tour_.size() - 1 || pos_e > tour_.size() - 1 || pos_i >= pos_e) {
+        throw std::logic_error("error: invlid range");
+    }
+
+    tour_.insert(events_.begin() + pos_e, subtour_indices.begin(), subtour_indices.end());
+    compute_events_(pos_i, instance);
+    compute_obj_insert_(pos_i, pos_e, instance);
+    check_complete_tour_();
+    return obj_;
+}
+
+
+uint32_t Cht::replace_subtour(const MTSPBCInstance& instance, const std::vector<uint32_t>& subtour_indices, const uint32_t pos_i, const uint32_t pos_e) {
+    compute_obj_remove_(pos_i, pos_e, instance);
+    tour_.erase(tour_.begin() + pos_i, tour_.begin() + pos_e);
+    tour_.insert(tour_.begin() + pos_i, subtour_indices.begin(), subtour_indices.end());
+    compute_obj_insert_(pos_i, pos_e, instance);
+    compute_events_(pos_i, instance);
+    check_complete_tour_();
+    return obj_;
+}
+
+
+uint32_t Cht::remove_subtour(const MTSPBCInstance& instance, const uint32_t pos_i, const uint32_t pos_e) {
+    compute_obj_remove_(pos_i, pos_e, instance);
+    tour_.erase(tour_.begin() + pos_i, tour_.begin() + pos_e);
+    compute_events_(pos_i, instance);
+    check_complete_tour_();
+    return obj_;
+}
+
+
+uint32_t Cht::reverse_subtour(const MTSPBCInstance& instance, const uint32_t pos_i, const uint32_t pos_e) {
+    std::reverse(tour_.begin() + pos_i, tour_.begin() + pos_e);
+    compute_events_(pos_i, instance);
+    check_complete_tour_();
+    return obj_;
+}
+
+
+uint32_t Cht::reverse_tour(const MTSPBCInstance& instance) {
+    std::reverse(tour_.begin(), tour_.end());
+    compute_events_(instance);
+    check_complete_tour_();
+    return 0;
 }
 
 

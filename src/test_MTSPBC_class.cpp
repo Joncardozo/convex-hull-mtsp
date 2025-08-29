@@ -2,6 +2,7 @@
 #include "MTSPBC_chh.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <fstream>
 #include <gtest/gtest.h>
 #include <memory>
 #include <vector>
@@ -173,5 +174,37 @@ TEST_F(MTSPBCTest, CloseTours) {
         ASSERT_TRUE(solution.get_pos_for_node(i, 0));
         ASSERT_TRUE(solution.get_complete_tour(i));
     }
+    int debug {};
+}
+
+
+TEST_F(MTSPBCTest, SaveSolution) {
+    const MTSPBCInstance& cref = *instance;
+    MTSPBC solution(cref);
+    for (uint32_t i { 0 }; i < cref.n(); i++) {
+        un_nodes.push_back(i);
+    }
+    for (uint32_t i { 0 }; i < cref.k(); i++) {
+        solution.create_vehicle();
+    }
+    solution.set_radius(cref.r());
+    find_onion_hull(solution, un_nodes, cref);
+    ASSERT_NO_THROW(cheapest_insertion(solution, un_nodes, cref));
+    assign_garage(solution, un_nodes);
+    ASSERT_TRUE(un_nodes.size() == 0);
+    ASSERT_GE(solution.get_total_obj(), 2397);
+    close_tours(solution);
+    for (uint32_t i { 0 }; i < solution.get_k_vehicles(); i++) {
+        int debug {};
+        ASSERT_TRUE(solution.get_pos_for_node(i, 0));
+        ASSERT_TRUE(solution.get_complete_tour(i));
+    }
+    solution.save_solution("../data/points.dat", "../data/tour.dat");
+    std::ifstream points_file("../data/points.dat");
+    std::ifstream tour_file("../data/tour.dat");
+    ASSERT_TRUE(points_file.is_open());
+    ASSERT_TRUE(tour_file.is_open());
+    points_file.close();
+    tour_file.close();
     int debug {};
 }

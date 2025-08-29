@@ -67,9 +67,19 @@ uint32_t MTSPBC::collect_events_() {
 }
 
 
-uint32_t collect_events_(const uint32_t& vehicle, const uint32_t& node_index) {
+// uint32_t collect_events_(const uint32_t& vehicle, const uint32_t& node_index) {
 
-    return 0;
+//     return 0;
+// }
+
+
+uint32_t MTSPBC::compute_obj_() {
+    uint32_t obj { 0 };
+    for (uint32_t i { 0 }; i < k_vehicles_; i++) {
+        obj += tours_.at(i).get_obj();
+    }
+    total_obj_ = obj;
+    return total_obj_;
 }
 
 
@@ -99,25 +109,22 @@ uint32_t MTSPBC::compute_max_distances_() {
 
 
 void MTSPBC::save_solution(const std::string& points_filepath, const std::string& tour_filepath) {
-    std::ofstream f(filepath);
+    std::ofstream fp(points_filepath);
     for (uint32_t i { 0 }; i < instance_.n(); i++) {
-
-        f << instance_.coordinate(i).pos_x << " " << instance_.coordinate(i).pos_y << std::endl;
+        fp << instance_.coordinate(i).pos_x << " " << instance_.coordinate(i).pos_y << std::endl;
     }
-    f.close();
+    fp.close();
 
-    std::ofstream hull_file("hull.dat");
-    for (auto h : onion_hull) {
-        for (uint32_t idx : h) {
-            hull_file << coordinates[idx].pos_x << " " << coordinates[idx].pos_y << "\n";
+    std::ofstream ft(tour_filepath);
+    for (auto t : tours_) {
+        for (auto idx : t.get_tour()) {
+            ft << instance_.coordinate(idx).pos_x << " " << instance_.coordinate(idx).pos_y << std::endl;
         }
-        hull_file << coordinates[h[0]].pos_x << " " << coordinates[h[0]].pos_y << "\n";
-        hull_file << std::endl << std::endl;
+        ft << std::endl << std::endl;
     }
 
-    // Close the hull
-    hull_file.close();
-    return 0;
+    // Close the file
+    ft.close();
 }
 
 
@@ -171,6 +178,85 @@ uint32_t MTSPBC::remove_node(const uint32_t vehicle, const size_t pos) {
 }
 
 
+uint32_t MTSPBC::insert_subtour(const uint32_t vehicle, const std::vector<uint32_t>& subtour_indices, const uint32_t pos_i, const uint32_t pos_e) {
+    if (vehicle > k_vehicles_) {
+        throw std::logic_error("error: vehicle does not exist!");
+    }
+    if (pos_i > pos_e) {
+        throw std::logic_error("error: invalid interval!");
+    }
+    if (pos_i > tours_.at(vehicle).get_tour().size() - 1 || pos_e > tours_.at(vehicle).get_tour().size() - 1) {
+        throw std::logic_error("error: invalid interval");
+    }
+    tours_.at(vehicle).insert_subtour(instance_, subtour_indices, pos_i, pos_e);
+    compute_obj_();
+    collect_events_();
+    compute_max_distances_();
+    // check_feasibility_();
+    compute_obj_();
+    return total_obj_;
+}
+
+
+uint32_t MTSPBC::replace_subtour(const uint32_t vehicle, const std::vector<uint32_t>& subtour_indices, const uint32_t pos_i, const uint32_t pos_e) {
+    if (vehicle > k_vehicles_) {
+        throw std::logic_error("error: vehicle does not exist!");
+    }
+    if (pos_i > pos_e) {
+        throw std::logic_error("error: invalid interval!");
+    }
+    if (pos_i > tours_.at(vehicle).get_tour().size() - 1 || pos_e > tours_.at(vehicle).get_tour().size() - 1) {
+        throw std::logic_error("error: invalid interval");
+    }
+    tours_.at(vehicle).replace_subtour(instance_, subtour_indices, pos_i, pos_e);
+    compute_obj_();
+    collect_events_();
+    compute_max_distances_();
+    // check_feasibility_();
+    compute_obj_();
+    return total_obj_;
+}
+
+
+uint32_t MTSPBC::remove_subtour(const uint32_t vehicle, const uint32_t pos_i, const uint32_t pos_e) {
+    if (vehicle > k_vehicles_) {
+        throw std::logic_error("error: vehicle does not exist!");
+    }
+    if (pos_i > pos_e) {
+        throw std::logic_error("error: invalid interval!");
+    }
+    if (pos_i > tours_.at(vehicle).get_tour().size() - 1 || pos_e > tours_.at(vehicle).get_tour().size() - 1) {
+        throw std::logic_error("error: invalid interval");
+    }
+    tours_.at(vehicle).remove_subtour(instance_, pos_i, pos_e);
+    compute_obj_();
+    collect_events_();
+    compute_max_distances_();
+    // check_feasibility_();
+    compute_obj_();
+    return total_obj_;
+}
+
+
+uint32_t MTSPBC::reverse_subtour(const uint32_t vehicle, const uint32_t pos_i, const uint32_t pos_e) {
+    if (vehicle > k_vehicles_) {
+        throw std::logic_error("error: vehicle does not exist!");
+    }
+    if (pos_i > pos_e) {
+        throw std::logic_error("error: invalid interval!");
+    }
+    if (pos_i > tours_.at(vehicle).get_tour().size() - 1 || pos_e > tours_.at(vehicle).get_tour().size() - 1) {
+        throw std::logic_error("error: invalid interval");
+    }
+    tours_.at(vehicle).reverse_subtour(instance_, pos_i, pos_e);
+    compute_obj_();
+    collect_events_();
+    compute_max_distances_();
+    // check_feasibility_();
+    return total_obj_;
+}
+
+
 uint32_t MTSPBC::push_back(const uint32_t vehicle, const uint32_t node) {
     if (k_vehicles_ - 1 < vehicle) {
         throw std::logic_error("error: vehicle do not exist");
@@ -216,6 +302,16 @@ uint32_t MTSPBC::pop_front(const uint32_t vehicle) {
     total_obj_ -= old_obj - new_obj;
     collect_events_();
     return total_obj_;
+}
+
+
+uint32_t MTSPBC::reverse_tour(const uint32_t vehicle) {
+    if (k_vehicles_ - 1 < vehicle) {
+        throw std::logic_error("error: vehicle does not exist");
+    }
+
+    return tours_.at(vehicle).reverse_tour(instance_);
+
 }
 
 

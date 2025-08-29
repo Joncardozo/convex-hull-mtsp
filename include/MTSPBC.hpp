@@ -1,8 +1,8 @@
 #pragma once
 
+
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -23,7 +23,6 @@ class MTSPBC {
     std::vector<uint32_t> max_distance_events_;
     bool feasible_;
     uint32_t max_distance_value_;
-
     uint32_t compute_obj_();
     uint32_t collect_events_();
     uint32_t collect_events_(const uint32_t& vehicle, const uint32_t& node_index);
@@ -35,12 +34,10 @@ class MTSPBC {
     public:
     MTSPBC(const MTSPBCInstance& instance);
     // MSTPBC methods
-    uint32_t create_distance_matrix(std::shared_ptr<std::vector<std::vector<uint32_t>>> matrix);
-    uint32_t create_coord(std::shared_ptr<std::vector<Coord>> coord);
     uint32_t create_vehicle();
     uint32_t remove_vehicle(const uint32_t vehicle_index);
     uint32_t set_radius(const uint32_t r_radius);
-    void save_solution(const std::string& filepath);
+    void save_solution(const std::string& filepath, const std::string& tour_filepath);
     [[nodiscard]] uint32_t get_total_obj() const noexcept;
     [[nodiscard]] std::vector<std::pair<uint32_t, uint32_t>> get_events() const noexcept;
     [[nodiscard]] bool get_feasibility() const noexcept;
@@ -57,10 +54,15 @@ class MTSPBC {
     // Cht wrapper methods
     uint32_t insert_node(const uint32_t vehicle, const uint32_t node, const size_t pos);
     uint32_t remove_node(const uint32_t vehicle, const size_t pos);
+    uint32_t insert_subtour(const uint32_t vehicle, const std::vector<uint32_t>& subtour_indices, const uint32_t pos_i, const uint32_t pos_e);
+    uint32_t replace_subtour(const uint32_t vehicle, const std::vector<uint32_t>& subtour_indices, const uint32_t pos_i, const uint32_t pos_e);
+    uint32_t remove_subtour(const uint32_t vehicle, const uint32_t pos_i, const uint32_t pos_e);
+    uint32_t reverse_subtour(const uint32_t vehicle, const uint32_t pos_i, const uint32_t pos_e);
     uint32_t push_back(const uint32_t vehicle, const uint32_t node);
     uint32_t push_front(const uint32_t vehicle, const uint32_t node);
     uint32_t pop_back(const uint32_t vehicle);
     uint32_t pop_front(const uint32_t vehicle);
+    uint32_t reverse_tour(const uint32_t vehicle);
     [[nodiscard]] uint32_t get_obj_vehicle(const uint32_t vehicle) const;
     [[nodiscard]] std::vector<uint32_t> get_tour(const uint32_t vehicle) const;
     [[nodiscard]] std::optional<size_t> get_pos_for_node(const uint32_t vehicle, const uint32_t node) const;

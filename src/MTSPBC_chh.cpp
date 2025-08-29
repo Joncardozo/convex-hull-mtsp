@@ -122,6 +122,9 @@ uint32_t cheapest_insertion(MTSPBC& solution, std::vector<size_t>& un_nodes, con
         solution.insert_node(k_index, un_nodes[unassigned_index], position);
         unassign(solution.get_tour(k_index), un_nodes);
     }
+    for (uint32_t i { 0 }; i < solution.get_k_vehicles(); i++) {
+        solution.reverse_tour(i);
+    }
     return solution.get_total_obj();
 }
 
@@ -188,7 +191,7 @@ uint32_t close_tours(MTSPBC& solution) {
         size_t remove_nodes { depot_pos.value() };
         std::vector<uint32_t> first_part {};
         for (uint32_t j{ 0 }; j < remove_nodes; j++) {
-            first_part.push_back(solution.get_node_at_pos(i, j));
+            first_part.push_back(solution.get_node_at_pos(i, 0));
             solution.remove_node(i, 0);
         }
         for (uint32_t j{ 0 }; j < first_part.size(); j++) {

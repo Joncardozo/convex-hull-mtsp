@@ -17,8 +17,10 @@ class Cht {
         uint32_t compute_events_(const uint32_t inserted_pos, const MTSPBCInstance& instance);
         uint32_t compute_obj_insert_(size_t pos_A, size_t pos_B, size_t pos_C, const MTSPBCInstance& instance);
         uint32_t compute_obj_insert_(const bool at_end, const MTSPBCInstance& instance);
+        uint32_t compute_obj_insert_(const uint32_t pos_i, const uint32_t pos_e, const MTSPBCInstance& instance);
         uint32_t compute_obj_remove_(size_t pos_A, size_t pos_B, size_t pos_C, const MTSPBCInstance& instance);
         uint32_t compute_obj_remove_(const bool at_end, const MTSPBCInstance& instance);
+        uint32_t compute_obj_remove_(const uint32_t pos_i, const uint32_t pos_e, const MTSPBCInstance& instance);
 
     public:
         Cht();
@@ -28,6 +30,11 @@ class Cht {
         uint32_t push_front(const uint32_t node, const MTSPBCInstance& instance);
         uint32_t pop_back(const MTSPBCInstance& instance);
         uint32_t pop_front(const MTSPBCInstance& instance);
+        uint32_t insert_subtour(const MTSPBCInstance& instance, const std::vector<uint32_t>& subtour_indices, const uint32_t pos_i, const uint32_t pos_e);
+        uint32_t replace_subtour(const MTSPBCInstance& instance, const std::vector<uint32_t>& subtour_indices, const uint32_t pos_i, const uint32_t pos_e);
+        uint32_t remove_subtour(const MTSPBCInstance& instance, const uint32_t pos_i, const uint32_t pos_e);
+        uint32_t reverse_subtour(const MTSPBCInstance& instance, const uint32_t pos_i, const uint32_t pos_e);
+        uint32_t reverse_tour(const MTSPBCInstance& instance);
         [[nodiscard]] uint32_t get_obj() const noexcept;
         [[nodiscard]] std::vector<uint32_t> get_tour() const noexcept;
         [[nodiscard]] std::optional<size_t> get_pos_for_node(const uint32_t node) const;
