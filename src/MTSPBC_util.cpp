@@ -20,7 +20,7 @@ int orientation(const Coord& a, const Coord& b, const Coord& c) {
 
 
 Coord partial_coordinate(const Coord& m, const Coord& n, const double& dt) {
-    Coord mn { m - n };
+    Coord mn { n - m };
     double mn_norm { coord_norm(mn) };
     Coord mn_unit { mn / mn_norm };
     return m + mn_unit * dt;
@@ -46,15 +46,11 @@ uint32_t distance(const Coord& a, const Coord& b) {
 }
 
 
-uint32_t distance(const MTSPBC& solution, const uint32_t& event_index, const uint32_t& moving_vehicle) {
+uint32_t distance(const MTSPBC& solution, const uint32_t event_index, const uint32_t moving_vehicle) {
     auto event { solution.get_event(event_index) };
     auto e_time { event.first };
     auto e_vehicle { event.second };
     auto e_node { solution.get_node_at_event(e_vehicle, e_time) };
-    if (moving_vehicle == e_vehicle) {
-        return 0;
-    }
-    uint32_t mv_time { 0 };
     auto mv_events { solution.get_vehicle_events(moving_vehicle) };
     uint32_t last_e_mv { };
     uint32_t last_e_mv_i { };
@@ -66,7 +62,7 @@ uint32_t distance(const MTSPBC& solution, const uint32_t& event_index, const uin
         last_e_mv_i = t;
     }
     auto last_e_mv_node { solution.get_tour(moving_vehicle).at(last_e_mv_i) };
-    if (last_e_mv_node == solution.get_tour(moving_vehicle).back()) {
+    if (last_e_mv_i == solution.get_tour(moving_vehicle).size() - 1) {
         return distance(solution.get_coord(e_node), solution.get_coord(last_e_mv_node));
     }
     auto dt { e_time - last_e_mv };
@@ -76,6 +72,78 @@ uint32_t distance(const MTSPBC& solution, const uint32_t& event_index, const uin
     auto mv_last_coord { solution.get_coord(mv_last_node) };
     auto real_position { partial_coordinate(mv_last_coord, mv_next_coord, dt) };
     return distance(real_position, solution.get_coord(e_node));
+}
+
+
+Coord real_position(const MTSPBC& solution, const uint32_t moving_vehicle, const uint32_t last_e_mv, const uint32_t last_e_mv_i, const uint32_t e_time) {
+    auto last_e_mv_node_1 { solution.get_tour(moving_vehicle).at(last_e_mv_i) };
+    auto dt_1 { e_time - last_e_mv };
+    auto mv_next_node_1 { solution.get_tour(moving_vehicle).at(last_e_mv_i + 1) };
+    auto mv_next_coord_1 { solution.get_coord(mv_next_node_1) };
+    auto mv_last_node_1 { solution.get_tour(moving_vehicle).at(last_e_mv_i) };
+    auto mv_last_coord_1 { solution.get_coord(mv_last_node_1) };
+    auto real_position_1 { partial_coordinate(mv_last_coord_1, mv_next_coord_1, dt_1) };
+    return real_position_1;
+}
+
+
+uint32_t distance(const MTSPBC& solution, const uint32_t event_index, const uint32_t moving_vehicle_1, const uint32_t moving_vehicle_2) {
+    auto event { solution.get_event(event_index) };
+    auto e_time { event.first };
+    auto e_vehicle { event.second };
+    auto e_node { solution.get_node_at_event(e_vehicle, e_time) };
+    if (moving_vehicle_1 == 2 && moving_vehicle_2 == 4 && e_time == 17 && e_vehicle == 2) {
+        int debug {};
+    }
+    if (moving_vehicle_1 == e_vehicle) {
+        return distance(solution, event_index, moving_vehicle_2);
+    }
+    else if (moving_vehicle_2 == e_vehicle) {
+        return distance(solution, event_index, moving_vehicle_1);
+    }
+    auto mv_events_1 { solution.get_vehicle_events(moving_vehicle_1) };
+    auto mv_events_2 { solution.get_vehicle_events(moving_vehicle_2) };
+    uint32_t last_e_mv_1 { };
+    uint32_t last_e_mv_2 { };
+    uint32_t last_e_mv_i_1 { };
+    uint32_t last_e_mv_i_2 { };
+    for (uint32_t t { 0 }; t < mv_events_1.size(); t++) {
+        if (mv_events_1.at(t) > e_time) {
+            break;
+        }
+        last_e_mv_1 = mv_events_1.at(t);
+        last_e_mv_i_1 = t;
+    }
+    for (uint32_t t { 0 }; t < mv_events_2.size(); t++) {
+        if (mv_events_2.at(t) > e_time) {
+            break;
+        }
+        last_e_mv_2 = mv_events_2.at(t);
+        last_e_mv_i_2 = t;
+    }
+    if (last_e_mv_i_1 == mv_events_1.size() - 1) {
+        uint32_t mv_1_last { solution.get_tour(moving_vehicle_1).back() };
+        if (last_e_mv_i_2 == mv_events_2.size() - 1) {
+            uint32_t mv_2_last { solution.get_tour(moving_vehicle_2).back() };
+            return distance(solution.get_coord(mv_1_last), solution.get_coord(mv_2_last));
+        }
+        else {
+            Coord mv_2_real { real_position(solution, moving_vehicle_2, last_e_mv_2, last_e_mv_i_2, e_time) };
+            return distance(solution.get_coord(mv_1_last), mv_2_real);
+        }
+    }
+    else {
+        Coord mv_1_real { real_position(solution, moving_vehicle_1, last_e_mv_1, last_e_mv_i_1, e_time) };
+        if (last_e_mv_i_2 == mv_events_2.size() - 1) {
+            uint32_t mv_2_last { solution.get_tour(moving_vehicle_2).back() };
+            return distance(solution.get_coord(mv_2_last), mv_1_real);
+        }
+        else {
+            Coord mv_2_real { real_position(solution, moving_vehicle_2, last_e_mv_2, last_e_mv_i_2, e_time) };
+            return distance(mv_1_real, mv_2_real);
+        }
+    }
+    return 0;
 }
 
 

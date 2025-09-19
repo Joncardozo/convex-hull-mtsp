@@ -18,7 +18,8 @@ class ChmtspTest : public ::testing::Test {
     static void SetUpTestSuite() {
         std::string filepath {"../experiments/BC/R1_5v_200n.bc"};
         std::string dist_filepath {"../experiments/inst.dat"};
-        instance = std::make_unique<MTSPBCInstance>(filepath, dist_filepath);
+        std::string cover_filepath { "../experiments/cover.dat" };
+        instance = std::make_unique<MTSPBCInstance>(filepath, dist_filepath, cover_filepath);
     }
 
     static void TearDownTestSuite() {

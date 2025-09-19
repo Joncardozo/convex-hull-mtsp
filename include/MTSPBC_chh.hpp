@@ -10,7 +10,8 @@
 
 uint32_t add_convex_hull(MTSPBC& solution, const uint32_t vehicle, std::vector<size_t>& un_nodes, const MTSPBCInstance& instance);
 uint32_t find_onion_hull(MTSPBC& solution, std::vector<size_t>& un_nodes, const MTSPBCInstance& instance);
-uint32_t cheapest_insertion(MTSPBC& solution, std::vector<size_t>& un_nodes, const MTSPBCInstance& instance);
-uint32_t remove_covered_nodes(MTSPBC& solution, std::vector<size_t>& un_nodes);
+uint32_t cheapest_insertion(MTSPBC& solution, std::vector<size_t>& un_nodes, const MTSPBCInstance& instance, const bool closed_tour);
+uint32_t remove_covered_nodes(MTSPBC& solution, const MTSPBCInstance& instance, const uint32_t vehicle, std::vector<size_t>& un_nodes);
 uint32_t assign_garage(MTSPBC& solution, std::vector<size_t>& un_nodes);
 uint32_t close_tours(MTSPBC& solution);
+uint32_t maxd_best_3opt(MTSPBC& solution, const MTSPBCInstance& instance);

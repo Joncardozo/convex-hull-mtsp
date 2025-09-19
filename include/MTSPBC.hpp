@@ -32,6 +32,9 @@ class MTSPBC {
 
 
     public:
+    // MTSPBC(MTSPBC&&) = default;
+    // MTSPBC& operator=(MTSPBC&&) = default;
+
     MTSPBC(const MTSPBCInstance& instance);
     // MSTPBC methods
     uint32_t create_vehicle();
@@ -63,6 +66,8 @@ class MTSPBC {
     uint32_t pop_back(const uint32_t vehicle);
     uint32_t pop_front(const uint32_t vehicle);
     uint32_t reverse_tour(const uint32_t vehicle);
+    [[nodiscard]] uint32_t n_nodes(const uint32_t vehicle) const;
+    [[nodiscard]] uint32_t n_events(const uint32_t vehicle) const;
     [[nodiscard]] uint32_t get_obj_vehicle(const uint32_t vehicle) const;
     [[nodiscard]] std::vector<uint32_t> get_tour(const uint32_t vehicle) const;
     [[nodiscard]] std::optional<size_t> get_pos_for_node(const uint32_t vehicle, const uint32_t node) const;
@@ -70,4 +75,8 @@ class MTSPBC {
     [[nodiscard]] uint32_t get_node_at_event(const uint32_t vehicle, const uint32_t e_time) const;
     [[nodiscard]] bool get_complete_tour(const uint32_t vehicle) const;
     [[nodiscard]] std::vector<uint32_t> get_vehicle_events(const uint32_t vehicle) const;
+    [[nodiscard]] Edge edge(const uint32_t vehicle, const uint32_t edge_i) const;
+    [[nodiscard]] Edge edge_at_event(const uint32_t vehicle, const uint32_t e_time) const;
+    [[nodiscard]] uint32_t event_index(const uint32_t vehicle, const uint32_t e_time) const;
+    [[nodiscard]] uint32_t dist_at_event(const uint32_t e_index) const;
 };

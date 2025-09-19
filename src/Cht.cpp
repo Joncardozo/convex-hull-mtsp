@@ -16,11 +16,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <algorithm>
-#include <ios>
 #include <iterator>
 #include <limits>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 
@@ -130,6 +130,11 @@ uint32_t Cht::remove_node(const size_t pos, const MTSPBCInstance& instance) {
  * @return The index of the found node.
  */
 [[nodiscard]] std::optional<size_t> Cht::get_pos_for_node(const uint32_t node) const {
+
+    if (node == 0 && tour_.back() == 0) {
+        return tour_.size() - 1;
+    }
+
     auto it { std::find(tour_.begin(), tour_.end(), node) };
 
     if (it == tour_.end()) {
@@ -448,6 +453,9 @@ bool Cht::check_complete_tour_() {
 [[nodiscard]] size_t Cht::n_nodes() const noexcept { return tour_.size(); }
 
 
+[[nodiscard]] uint32_t Cht::n_events() const noexcept { return events_.size(); }
+
+
 [[nodiscard]] std::vector<uint32_t> Cht::get_events() const noexcept { return events_;}
 
 
@@ -459,5 +467,42 @@ bool Cht::check_complete_tour_() {
     if (e_node == events_.end()) {
         return std::nullopt;
     }
-    return std::distance(events_.begin(), e_node);
+    return tour_.at(std::distance(events_.begin(), e_node));
+}
+
+
+[[nodiscard]] Edge Cht::edge(const uint32_t edge_i) const {
+    if (tour_.size() < 1) {
+        throw std::logic_error("error: no edges");
+    }
+    if (edge_i > tour_.size() - 2) {
+        throw std::range_error("error: edge out of range");
+    }
+    Edge return_edge(std::make_pair(edge_i, tour_.at(edge_i)), std::make_pair(edge_i + 1, tour_.at(edge_i + 1)));
+    return return_edge;
+}
+
+
+[[nodiscard]] Edge Cht::edge_at_event(const uint32_t e_time) const {
+    if (events_.size() == 0) {
+        throw std::logic_error("error: empty tour");
+    }
+    if (e_time > events_.back()) {
+        return Edge(std::make_pair(tour_.size() - 2, tour_.at(tour_.size() - 2)), std::make_pair(tour_.size() - 1, tour_.back()));
+    }
+    for (uint32_t i { 1 }; i < events_.size(); i++) {
+        if (events_.at(i) > e_time) {
+            return edge(i - 1);
+        }
+    }
+    return edge(tour_.size() - 2);
+}
+
+
+[[nodiscard]] uint32_t Cht::event_index(const uint32_t e_time) const {
+    if (e_time > events_.back()) {
+        return events_.size() - 1;
+    }
+    auto it { std::find(events_.begin(), events_.end(), e_time) };
+    return std::distance(events_.begin(), it);
 }

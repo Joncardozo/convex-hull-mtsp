@@ -16,5 +16,12 @@
     "request": "launch",
     "program": "build/test_Cht_class",
     "cwd": "/home/jon/code/convex-hull-mtsp/build/"
+  },
+  {
+    "label": "test_MTSPBC_complete_sol",
+    "adapter": "CodeLLDB",
+    "request": "launch",
+    "program": "build/test_MSTPBC_class --gtest_filter=MTSPBCTest.CompleteHeuristicChhSolution",
+    "cwd": "/home/jon/code/convex-hull-mtsp/build/"
   }
 ]

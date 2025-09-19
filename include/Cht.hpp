@@ -1,10 +1,13 @@
 #pragma once
 
+
 #include "MTSPBCInstance.hpp"
+#include "MTSPBC_ds.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <vector>
 #include <optional>
+
 
 class Cht {
     private:
@@ -40,9 +43,12 @@ class Cht {
         [[nodiscard]] std::optional<size_t> get_pos_for_node(const uint32_t node) const;
         [[nodiscard]] uint32_t get_node_at_pos(const size_t pos) const;
         [[nodiscard]] size_t n_nodes() const noexcept;
+        [[nodiscard]] uint32_t n_events() const noexcept;
         [[nodiscard]] std::vector<uint32_t> get_events() const noexcept;
         [[nodiscard]] bool get_complete() const noexcept;
         [[nodiscard]] std::optional<uint32_t> get_node_at_event(const uint32_t e_time) const;
+        [[nodiscard]] Edge edge(const uint32_t edge_i) const;
+        [[nodiscard]] Edge edge_at_event(const uint32_t e_time) const;
+        [[nodiscard]] uint32_t event_index(const uint32_t e_time) const;
         bool check_complete_tour_();
-
 };

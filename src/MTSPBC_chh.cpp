@@ -1,6 +1,7 @@
 #include "MTSPBC_chh.hpp"
 #include "MTSPBC.hpp"
 #include "Cht.hpp"
+#include "MTSPBCInstance.hpp"
 #include "MTSPBC_util.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -83,7 +84,7 @@ uint32_t find_onion_hull(MTSPBC& solution, std::vector<size_t>& un_nodes, const 
 }
 
 
-uint32_t cheapest_insertion(MTSPBC& solution, std::vector<size_t>& un_nodes, const MTSPBCInstance& instance) {      // find heuristic solution
+uint32_t cheapest_insertion(MTSPBC& solution, std::vector<size_t>& un_nodes, const MTSPBCInstance& instance, const bool closed_tour) {      // find heuristic solution
     if (solution.get_total_obj() == 0) {
         throw std::logic_error("error: cheapest heuristic over empty solution not allowed");
     }
@@ -93,8 +94,15 @@ uint32_t cheapest_insertion(MTSPBC& solution, std::vector<size_t>& un_nodes, con
         uint32_t new_cost { 999999 };
         uint32_t unassigned_index {};
         for (auto un { 0 }; un < un_nodes.size(); un++) {
+            // uint32_t curr_best_obj { 999999 };
+            // uint32_t curr_best_k { 0 };
             for (auto k{ 0 }; k < solution.get_k_vehicles(); k++) {
-                for (auto i{ 0 }; i < solution.get_tour(k).size(); i++) {
+                // if (solution.get_obj_vehicle(k) < curr_best_obj) {
+                //     curr_best_obj = solution.get_obj_vehicle(k);
+                //     curr_best_k = k;
+                // }
+                uint32_t closed_i = (closed_tour) ? 1 : 0;
+                for (auto i{ closed_i }; i < solution.get_tour(k).size() - closed_i; i++) {
                     std::vector<uint32_t> insertion_hull { solution.get_tour(k) };
                     size_t past_node {};
                     if (i > 0) {
@@ -110,7 +118,7 @@ uint32_t cheapest_insertion(MTSPBC& solution, std::vector<size_t>& un_nodes, con
                     else {
                         temp_cost += solution.get_cost(past_node, inserted_node) + solution.get_cost(next_node, inserted_node);
                     }
-                    if (temp_cost < new_cost) {
+                    if (temp_cost < new_cost) { // && curr_best_k == k) {
                         position = i;
                         k_index = k;
                         new_cost = temp_cost;
@@ -144,8 +152,10 @@ uint32_t assign_garage(MTSPBC &solution, std::vector<size_t>& un_nodes) {
 
 
     for (uint32_t k{}; k < solution.get_k_vehicles(); k++) {
-        if (k == vehicle_at_depot.value()) {
-            continue;
+        if (vehicle_at_depot){
+            if (k == vehicle_at_depot.value()) {
+                continue;
+            }
         }
         uint32_t new_cost{ 999999 };
         uint32_t position{};
@@ -201,4 +211,96 @@ uint32_t close_tours(MTSPBC& solution) {
     }
     return 0;
 }
-// std::vector<uint32_t> remove_covered_nodes(std::vector<uint32_t> hull);   // remove node from convex hull if the remaining hull covers it
+
+
+uint32_t remove_covered_nodes(MTSPBC& solution, const MTSPBCInstance& instance, const uint32_t vehicle, std::vector<size_t>& un_nodes) {
+    std::vector<uint32_t> tour { solution.get_tour(vehicle) };
+    if (tour.size() <= 3)
+        throw std::logic_error("error: tour is too short (n <= 3)");
+    uint32_t depart_node_i { 0 };
+    uint32_t arrival_node_i { 1 };
+    std::optional<uint32_t> check_node{};
+    check_node.reset();
+    bool minimal_tour { false };
+    bool no_change { false };
+    bool at_the_end { false };
+    uint32_t in_between_nodes { 0 };
+    std::vector<uint32_t> remove_nodes{};
+    while (!minimal_tour) {
+        if (tour.size() - remove_nodes.size() == 3) {
+            minimal_tour = true;
+            break;
+        }
+        if (in_between_nodes == 0 && arrival_node_i != depart_node_i) {
+            check_node = arrival_node_i;
+            arrival_node_i = (arrival_node_i + 1) % tour.size();
+            in_between_nodes += 1;
+            continue;
+        }
+        if (check_node) {
+            double LB { instance.get_LB(tour.at(check_node.value()), tour.at(depart_node_i), tour.at(arrival_node_i)) };
+            double UB { instance.get_UB(tour.at(check_node.value()), tour.at(depart_node_i), tour.at(arrival_node_i)) };
+            if (UB < LB) {
+                if (at_the_end) break;
+                if (arrival_node_i < depart_node_i) break;
+                depart_node_i = arrival_node_i;
+                arrival_node_i = (arrival_node_i + 1) % tour.size();
+                check_node.reset();
+                at_the_end = (depart_node_i == tour.size() - 1) ? true : false;
+                in_between_nodes = 0;
+            }
+            else {
+                remove_nodes.push_back(tour.at(check_node.value()));
+                check_node = arrival_node_i;
+                arrival_node_i = (arrival_node_i + 1) % tour.size();
+                in_between_nodes++;
+                continue;
+            }
+        }
+        else {
+            minimal_tour = true;
+        }
+    }
+    for (auto n : remove_nodes) {
+        std::optional<size_t> pos { solution.get_pos_for_node(vehicle, n) };
+        if (pos) solution.remove_node(vehicle, pos.value());
+    }
+    un_nodes.insert(un_nodes.end(), remove_nodes.begin(), remove_nodes.end());
+    std::sort(un_nodes.begin(), un_nodes.end());
+    return 0;
+}
+
+
+uint32_t maxd_best_3opt(MTSPBC& solution, const MTSPBCInstance& instance) {
+    uint32_t best_k_rem { };
+    uint32_t best_n_rem { };
+    uint32_t best_k_ins { };
+    uint32_t best_pos_ins { };
+    uint32_t max_distance { solution.get_max_distance() };
+    bool has_improved { false };
+    while (has_improved) {
+        has_improved = false;
+        for (uint32_t i { }; i < solution.get_k_vehicles(); i++) {
+            for (uint32_t j { 1 }; j < solution.get_tour(i).size() - 1; j++) {
+                for (uint32_t k { }; k < solution.get_k_vehicles(); k++) {
+                    if (i == k) continue;
+                    for (uint32_t l { 1 }; l < solution.get_tour(k).size() - 1; l++) {
+                        uint32_t removed_node { solution.get_node_at_pos(i, j) };
+                        solution.remove_node(i, j);
+                        solution.insert_node(k, removed_node, l);
+                        uint32_t tmp_max_distance { solution.get_max_distance() };
+                        if (tmp_max_distance < max_distance) {
+                            max_distance = tmp_max_distance;
+                            has_improved = true;
+                        } else {
+                            has_improved |= false;
+                            solution.remove_node(k, l);
+                            solution.insert_node(i, removed_node, j);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return max_distance;
+}

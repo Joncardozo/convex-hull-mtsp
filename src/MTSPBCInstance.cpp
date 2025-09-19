@@ -1,15 +1,18 @@
 #include "MTSPBCInstance.hpp"
+#include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 
-InstanceData MTSPBCInstance::parse_instance(const std::string& inst_filepath, const std::string& dist_filepath) {
+InstanceData MTSPBCInstance::parse_instance(const std::string& inst_filepath, const std::string& dist_filepath, const std::string& cover_filepath) {
     InstanceData data;
     std::ifstream input_instance(inst_filepath);
     std::ifstream input_dist(dist_filepath);
+    std::ifstream input_cover(cover_filepath);
     bool parameters_read {false};
 
     // checks if it was open
@@ -29,6 +32,16 @@ InstanceData MTSPBCInstance::parse_instance(const std::string& inst_filepath, co
             ss >> data.k_vehicles >> data.n_nodes >> data.r_radius;
             data.n_nodes++;                  // adiciona garagem ao número de nós
             data.cost_matrix.resize(data.n_nodes, std::vector<uint32_t>(data.n_nodes));     // aloca matriz de distancias
+            data.UB.resize(data.n_nodes);
+            data.LB.resize(data.n_nodes);
+            for (size_t i {}; i < data.n_nodes; i++) {
+                data.UB.at(i).resize(data.n_nodes);
+                data.LB.at(i).resize(data.n_nodes);
+                for (size_t j {}; j < data.n_nodes; j++) {
+                    data.UB.at(i).at(j).resize(data.n_nodes);
+                    data.LB.at(i).at(j).resize(data.n_nodes);
+                }
+            }
             parameters_read = true;
         } else {
             Coord new_coord;
@@ -54,6 +67,22 @@ InstanceData MTSPBCInstance::parse_instance(const std::string& inst_filepath, co
             data.cost_matrix.at(node_A).at(node_B) = dist_AB;
         }
     }
+    input_dist.close();
+    if (!input_cover.is_open()) {
+        throw std::runtime_error("error: cover file not found");
+    }
+    while (std::getline(input_cover, line)) {
+        std::stringstream ss(line);
+        uint32_t covered_node {};
+        uint32_t departure_node {};
+        uint32_t arrival_node {};
+        double read_LB {};
+        double read_UB {};
+        ss >> covered_node >> departure_node >> arrival_node >> read_LB >> read_UB;
+        data.LB.at(covered_node).at(departure_node).at(arrival_node) = read_LB;
+        data.UB.at(covered_node).at(departure_node).at(arrival_node) = read_UB;
+    }
+    input_cover.close();
     return data;
 }
 
@@ -63,15 +92,26 @@ MTSPBCInstance::MTSPBCInstance(const InstanceData& data)
 coordinates_(data.coordinates),
 k_vehicles_(data.k_vehicles),
 r_radius_(data.r_radius),
-n_nodes_(data.n_nodes) {}
+n_nodes_(data.n_nodes),
+LB_(data.LB),
+UB_(data.UB) {}
 
 
-MTSPBCInstance::MTSPBCInstance(const std::string& instance_filepath, const std::string& dist_filepath)
-: MTSPBCInstance(parse_instance(instance_filepath, dist_filepath)) {}
+MTSPBCInstance::MTSPBCInstance(const std::string& instance_filepath, const std::string& dist_filepath, const std::string& cover_filepath)
+: MTSPBCInstance(parse_instance(instance_filepath, dist_filepath, cover_filepath)) {}
 
 
+[[nodiscard]] double MTSPBCInstance::get_LB(const uint32_t covered_node, const uint32_t departure_node, const uint32_t arrival_node) const {
+    return LB_[covered_node][departure_node][arrival_node];
+}
 
-[[nodiscard]] uint32_t MTSPBCInstance::cost(const uint32_t& node_A, const uint32_t node_B) const {
+
+[[nodiscard]] double MTSPBCInstance::get_UB(const uint32_t covered_node, const uint32_t departure_node, const uint32_t arrival_node) const {
+    return UB_[covered_node][departure_node][arrival_node];
+}
+
+
+[[nodiscard]] uint32_t MTSPBCInstance::cost(const uint32_t node_A, const uint32_t node_B) const {
     if ((node_A > n_nodes_ - 1) || (node_B > n_nodes_ - 1)) {
         throw std::logic_error("error: node does not exist");
     }
@@ -79,7 +119,7 @@ MTSPBCInstance::MTSPBCInstance(const std::string& instance_filepath, const std::
 }
 
 
-[[nodiscard]] Coord MTSPBCInstance::coordinate(const uint32_t& node) const {
+[[nodiscard]] Coord MTSPBCInstance::coordinate(const uint32_t node) const {
     if (node > n_nodes_ - 1) {
         throw std::out_of_range("error: node does not exist");
     }
